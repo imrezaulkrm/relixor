@@ -1,0 +1,47 @@
+// Jenkinsfile
+// Relixor Declarative Pipeline
+pipeline {
+    agent any
+
+    environment {
+        // Configure credentials in Jenkins: Credentials -> System -> Global
+        APK_STORE_URL    = credentials('relixor-store-url')   // Secret text
+        APK_STORE_TOKEN  = credentials('relixor-api-token')   // Secret text
+        APK_STORE_APP_ID = credentials('relixor-app-id')      // Secret text
+        RELEASE_CHANNEL  = 'STAGING'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build APK') {
+            steps {
+                sh './gradlew assembleRelease --no-daemon'
+            }
+        }
+
+        stage('Publish Release') {
+            steps {
+                sh '''
+                    APK_FILE=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+                    VERSION="1.0.${BUILD_NUMBER}"
+                    VERSION_CODE="${BUILD_NUMBER}"
+
+                    curl --fail-with-body --show-error --location \
+                      --request POST \
+                      --header "Authorization: Bearer ${APK_STORE_TOKEN}" \
+                      --form "file=@${APK_FILE}" \
+                      --form "version=${VERSION}" \
+                      --form "versionCode=${VERSION_CODE}" \
+                      --form "channel=${RELEASE_CHANNEL}" \
+                      --form "notes=Automated release from Jenkins build #${BUILD_NUMBER}" \
+                      "${APK_STORE_URL}/api/v1/apps/${APK_STORE_APP_ID}/releases"
+                '''
+            }
+        }
+    }
+}

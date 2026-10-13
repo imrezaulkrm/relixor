@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  DEVELOPER
+  VIEWER
+}
+
+enum ReleaseChannel {
+  DEV
+  QA
+  STAGING
+  PRODUCTION
+}
+
+enum TokenPermission {
+  READ
+  WRITE
+  ADMIN
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  name         String
+  passwordHash String
+  role         Role       @default(DEVELOPER)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  releases     Release[]
+  tokens       ApiToken[]
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model App {
+  id          String     @id @default(uuid())
+  name        String
+  packageName String     @unique
+  description String?
+  iconUrl     String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  releases    Release[]
+  tokens      ApiToken[]
+  auditLogs   AuditLog[]
+
+  @@map("apps")
+}
+
+model Release {
+  id               String         @id @default(uuid())
+  appId            String
+  app              App            @relation(fields: [appId], references: [id], onDelete: Cascade)
+  version          String
+  versionCode      Int
+  channel          ReleaseChannel @default(DEV)
+  releaseNotes     String?
+  fileName         String
+  storageKey       String
+  fileSize         Int
+  sha256           String
+  downloadCount    Int            @default(0)
+  minSdkVersion    Int?
+  targetSdkVersion Int?
+  uploadedById     String?
+  uploadedBy       User?          @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  @@unique([appId, version, versionCode], name: "app_version_unique")
+  @@index([appId])
+  @@index([channel])
+  @@map("releases")
+}
+
+model ApiToken {
+  id          String          @id @default(uuid())
+  name        String
+  tokenPrefix String
+  tokenHash   String          @unique
+  permission  TokenPermission @default(WRITE)
+  appId       String?
+  app         App?            @relation(fields: [appId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  revoked     Boolean         @default(false)
+  createdAt   DateTime        @default(now())
+
+  @@index([tokenHash])
+  @@index([userId])
+  @@map("api_tokens")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  action     String
+  entityType String
+  entityId   String?
+  details    String?  // JSON string
+  ipAddress  String?
+  userAgent  String?
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  appId      String?
+  app        App?     @relation(fields: [appId], references: [id], onDelete: SetNull)
+  createdAt  DateTime @default(now())
+
+  @@index([action])
+  @@index([entityType])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

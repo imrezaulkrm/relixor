@@ -1,0 +1,86 @@
+# .gitlab-ci.yml
+# Production GitLab CI/CD Pipeline for Building & Publishing Android APKs to Relixor
+#
+# REQUIRED GITLAB CI/CD VARIABLES (Configure under Settings > CI/CD > Variables):
+# --------------------------------------------------------------------------------
+# - APK_STORE_URL      : Base URL of Relixor (e.g. https://apk.yourcompany.internal) [Protected]
+# - APK_STORE_TOKEN    : Secret Relixor API Token (relixor_live_...) [Masked, Protected]
+# - APK_STORE_APP_ID   : Target Relixor Application UUID [Protected]
+# - APP_VERSION        : Release version tag (e.g. 1.2.0 or $CI_COMMIT_TAG)
+# - APP_VERSION_CODE   : Integer version code (e.g. 120 or $CI_PIPELINE_IID)
+
+stages:
+  - build
+  - publish
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+  RELEASE_CHANNEL: "STAGING" # DEV, QA, STAGING, or PRODUCTION
+
+# Stage 1: Build the release APK with Gradle
+build_android_apk:
+  stage: build
+  image: eclipse-temurin:17-jdk-jammy
+  before_script:
+    - chmod +x ./gradlew
+  script:
+    - echo "Compiling Android release APK..."
+    - ./gradlew assembleRelease --no-daemon
+  artifacts:
+    name: "apk-$CI_COMMIT_REF_SLUG"
+    paths:
+      - app/build/outputs/apk/release/*.apk
+    expire_in: 2 days
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+
+# Stage 2: Publish the built APK directly to the Relixor Private Store
+publish_to_relixor:
+  stage: publish
+  image: curlimages/curl:latest
+  dependencies:
+    - build_android_apk
+  script:
+    - |
+      set -euo pipefail
+
+      # Locate compiled APK file
+      APK_FILE=$(ls -1 app/build/outputs/apk/release/*.apk 2>/dev/null | head -n 1)
+      if [ -z "$APK_FILE" ]; then
+        echo "ERROR: No APK file found in app/build/outputs/apk/release/"
+        exit 1
+      fi
+
+      VERSION="${APP_VERSION:-${CI_COMMIT_TAG:-1.0.${CI_PIPELINE_IID}}}"
+      VERSION_CODE="${APP_VERSION_CODE:-${CI_PIPELINE_IID}}"
+      RELEASE_NOTES="Automated CI/CD build from commit ${CI_COMMIT_SHORT_SHA} (${CI_COMMIT_TITLE}) on branch ${CI_COMMIT_REF_NAME} by ${GITLAB_USER_NAME}."
+
+      echo "=========================================================="
+      echo "Publishing APK to Relixor Store"
+      echo "Store Endpoint : ${APK_STORE_URL}/api/v1/apps/${APK_STORE_APP_ID}/releases"
+      echo "Target App ID  : ${APK_STORE_APP_ID}"
+      echo "Version        : ${VERSION} (code: ${VERSION_CODE})"
+      echo "Channel        : ${RELEASE_CHANNEL}"
+      echo "File           : ${APK_FILE}"
+      echo "=========================================================="
+
+      # Execute atomic upload with curl --fail-with-body
+      # Any HTTP >= 400 fails immediately with the response error body displayed
+      curl --fail-with-body \
+        --show-error \
+        --location \
+        --request POST \
+        --header "Authorization: Bearer ${APK_STORE_TOKEN}" \
+        --form "file=@${APK_FILE}" \
+        --form "version=${VERSION}" \
+        --form "versionCode=${VERSION_CODE}" \
+        --form "channel=${RELEASE_CHANNEL}" \
+        --form "notes=${RELEASE_NOTES}" \
+        "${APK_STORE_URL}/api/v1/apps/${APK_STORE_APP_ID}/releases"
+
+      echo ""
+      echo "✅ Successfully published APK release to Relixor!"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_TAG'

@@ -1,0 +1,18 @@
+{
+  "name": "relixor-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Relixor - Private APK Store & CI/CD Release Platform",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build:backend": "npm --prefix backend run build",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm run build:backend && npm run build:frontend",
+    "test": "npm --prefix backend test",
+    "seed": "npm --prefix backend run prisma:seed",
+    "docker:up": "docker compose up -d --build",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f"
+  }
+}

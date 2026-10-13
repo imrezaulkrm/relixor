@@ -1,0 +1,58 @@
+# .github/workflows/publish-apk.yml
+name: Build & Publish APK to Relixor
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: 'Release Channel'
+        required: true
+        default: 'STAGING'
+        type: choice
+        options:
+          - DEV
+          - QA
+          - STAGING
+          - PRODUCTION
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Java JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build Android Release APK
+        run: |
+          chmod +x ./gradlew
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Publish APK to Relixor
+        env:
+          APK_STORE_URL: ${{ secrets.APK_STORE_URL }}
+          APK_STORE_TOKEN: ${{ secrets.APK_STORE_TOKEN }}
+          APK_STORE_APP_ID: ${{ secrets.APK_STORE_APP_ID }}
+          CHANNEL: ${{ inputs.channel || 'PRODUCTION' }}
+        run: |
+          APK_PATH=$(find app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION_CODE="${GITHUB_RUN_NUMBER}"
+
+          curl --fail-with-body --show-error --location \
+            --request POST \
+            --header "Authorization: Bearer ${APK_STORE_TOKEN}" \
+            --form "file=@${APK_PATH}" \
+            --form "version=${VERSION}" \
+            --form "versionCode=${VERSION_CODE}" \
+            --form "channel=${CHANNEL}" \
+            --form "notes=Automated release from GitHub run #${GITHUB_RUN_ID} (commit ${GITHUB_SHA::7})" \
+            "${APK_STORE_URL}/api/v1/apps/${APK_STORE_APP_ID}/releases"
