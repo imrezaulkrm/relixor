@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { apiRequest } from '../api/client';
 import { DashboardStats } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { formatBytes, formatDate } from '../utils/format';
 import { ChannelBadge } from '../components/ChannelBadge';
 import {
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const Dashboard: React.FC<Props> = ({ onNavigateToApp, onNavigateTab }) => {
+  const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -216,12 +218,14 @@ export const Dashboard: React.FC<Props> = ({ onNavigateToApp, onNavigateTab }) =
               <Activity className="w-4 h-4 text-emerald-400" />
               Recent Release History & Activity
             </h2>
-            <button
-              onClick={() => onNavigateTab('audit')}
-              className="text-xs font-medium text-indigo-400 hover:text-indigo-300"
-            >
-              Full audit log
-            </button>
+            {user?.role === 'ADMIN' && (
+              <button
+                onClick={() => onNavigateTab('audit')}
+                className="text-xs font-medium text-indigo-400 hover:text-indigo-300"
+              >
+                Full audit log
+              </button>
+            )}
           </div>
 
           {stats.recentActivity.length === 0 ? (

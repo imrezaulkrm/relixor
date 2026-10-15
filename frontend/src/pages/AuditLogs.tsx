@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest } from '../api/client';
 import { AuditLogItem } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../utils/format';
 import {
   History,
   Filter,
   ChevronDown,
   ChevronUp,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface AuditLogResponse {
@@ -20,6 +22,7 @@ interface AuditLogResponse {
 }
 
 export const AuditLogs: React.FC = () => {
+  const { user } = useAuth();
   const [logs, setLogs] = useState<AuditLogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionFilter, setActionFilter] = useState('');
@@ -47,8 +50,20 @@ export const AuditLogs: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchLogs();
-  }, [page, actionFilter]);
+    if (user?.role === 'ADMIN') {
+      fetchLogs();
+    }
+  }, [page, actionFilter, user]);
+
+  if (user?.role !== 'ADMIN') {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center max-w-md mx-auto">
+        <ShieldAlert className="w-8 h-8 text-rose-500 mx-auto mb-3" />
+        <h3 className="text-base font-bold text-slate-100 mb-1">Access Denied</h3>
+        <p className="text-xs text-slate-400">System Audit Logs require Administrator privileges.</p>
+      </div>
+    );
+  }
 
   const getActionColor = (action: string) => {
     if (action.includes('UPLOAD')) return 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';

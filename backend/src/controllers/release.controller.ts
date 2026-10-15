@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
-import { ReleaseChannel } from '@prisma/client';
+import { Role, ReleaseChannel } from '@prisma/client';
 import { prisma } from '../services/prisma';
 import { getStorageProvider } from '../storage';
 import { calculateFileSha256 } from '../utils/checksum';
@@ -13,6 +13,15 @@ export async function uploadRelease(req: Request, res: Response, next: NextFunct
 
   try {
     const { appId } = req.params;
+
+    if (req.user?.role === Role.VIEWER) {
+      if (tempFile?.path) await fs.promises.unlink(tempFile.path).catch(() => {});
+      res.status(403).json({
+        success: false,
+        error: { message: 'Viewers have read-only access and cannot publish releases.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
 
     if (!tempFile) {
       res.status(400).json({
@@ -294,6 +303,14 @@ export async function downloadRelease(req: Request, res: Response, next: NextFun
 
 export async function deleteRelease(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (req.user?.role === Role.VIEWER) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Viewers have read-only access and cannot delete releases.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const { appId, releaseId } = req.params;
 
     const release = await prisma.release.findFirst({

@@ -35,7 +35,7 @@ export function createApp(): Express {
         if (config.corsOrigins.includes('*') || config.corsOrigins.includes(origin)) {
           return callback(null, true);
         }
-        return callback(null, true); // Permissive in internal setups, controllable via env
+        return callback(new Error('Origin is not allowed by CORS'));
       },
       credentials: true,
       methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],

@@ -120,6 +120,14 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
       return;
     }
 
+    if (req.authMethod === 'api_token') {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Password changes require an interactive user session.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
 
     const user = await prisma.user.findUnique({

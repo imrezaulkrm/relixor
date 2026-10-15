@@ -20,11 +20,13 @@ export const Sidebar: React.FC<Props> = ({ currentTab, onSelectTab }) => {
   const { user } = useAuth();
   const isAdmin = user?.role === 'ADMIN';
 
+  const canManageTokens = user?.role === 'ADMIN' || user?.role === 'DEVELOPER';
+
   const navItems = [
     { id: 'dashboard' as NavTab, label: 'Dashboard', icon: LayoutDashboard },
     { id: 'apps' as NavTab, label: 'Applications', icon: Smartphone },
-    { id: 'tokens' as NavTab, label: 'API Tokens', icon: KeyRound },
-    { id: 'audit' as NavTab, label: 'Audit Logs', icon: History },
+    ...(canManageTokens ? [{ id: 'tokens' as NavTab, label: 'API Tokens', icon: KeyRound }] : []),
+    ...(isAdmin ? [{ id: 'audit' as NavTab, label: 'Audit Logs', icon: History }] : []),
     { id: 'docs' as NavTab, label: 'CI/CD & API Docs', icon: FileCode2 },
     ...(isAdmin ? [{ id: 'users' as NavTab, label: 'User Management', icon: UsersIcon }] : []),
   ];

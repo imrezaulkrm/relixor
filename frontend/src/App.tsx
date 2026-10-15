@@ -3,6 +3,7 @@ import { useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { Sidebar, NavTab } from './components/Sidebar';
 import { Login } from './pages/Login';
+import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
 import { Apps } from './pages/Apps';
 import { AppDetails } from './pages/AppDetails';
@@ -10,6 +11,24 @@ import { Tokens } from './pages/Tokens';
 import { Users } from './pages/Users';
 import { AuditLogs } from './pages/AuditLogs';
 import { CiCdDocs } from './pages/CiCdDocs';
+
+import { ShieldAlert } from 'lucide-react';
+
+const AccessDenied: React.FC<{ message: string; onBack: () => void }> = ({ message, onBack }) => (
+  <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center max-w-md mx-auto mt-12">
+    <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto mb-4 border border-rose-500/20">
+      <ShieldAlert className="w-6 h-6" />
+    </div>
+    <h3 className="text-lg font-bold text-slate-100 mb-1">Access Denied</h3>
+    <p className="text-sm text-slate-400 mb-6">{message}</p>
+    <button
+      onClick={onBack}
+      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors"
+    >
+      Return to Dashboard
+    </button>
+  </div>
+);
 
 export const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
@@ -28,8 +47,11 @@ export const AppContent: React.FC = () => {
   }
 
   if (!user) {
-    return <Login />;
+    return window.location.pathname === '/login' ? <Login /> : <Home />;
   }
+
+  const isAdmin = user.role === 'ADMIN';
+  const canManageTokens = user.role === 'ADMIN' || user.role === 'DEVELOPER';
 
   const handleSelectTab = (tab: NavTab) => {
     setSelectedAppId(null);
@@ -72,9 +94,39 @@ export const AppContent: React.FC = () => {
             )
           )}
 
-          {currentTab === 'tokens' && <Tokens />}
-          {currentTab === 'users' && <Users />}
-          {currentTab === 'audit' && <AuditLogs />}
+          {currentTab === 'tokens' && (
+            canManageTokens ? (
+              <Tokens />
+            ) : (
+              <AccessDenied
+                message="API Token management requires Developer or Administrator privileges."
+                onBack={() => handleSelectTab('dashboard')}
+              />
+            )
+          )}
+
+          {currentTab === 'users' && (
+            isAdmin ? (
+              <Users />
+            ) : (
+              <AccessDenied
+                message="User Management requires Administrator privileges."
+                onBack={() => handleSelectTab('dashboard')}
+              />
+            )
+          )}
+
+          {currentTab === 'audit' && (
+            isAdmin ? (
+              <AuditLogs />
+            ) : (
+              <AccessDenied
+                message="System Audit Logs require Administrator privileges."
+                onBack={() => handleSelectTab('dashboard')}
+              />
+            )
+          )}
+
           {currentTab === 'docs' && <CiCdDocs />}
         </main>
       </div>

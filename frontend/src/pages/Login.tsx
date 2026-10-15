@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest, ApiError } from '../api/client';
-import { Box, Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import { Box, Lock, Mail, AlertCircle, ArrowRight, ArrowLeft } from 'lucide-react';
 import { User } from '../types';
 
 interface LoginResponse {
@@ -39,24 +39,23 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleFillDemo = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-slate-950 relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md relative z-10">
+        <a href="/" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-white transition-colors mb-8">
+          <ArrowLeft className="w-4 h-4" />
+          Back to home
+        </a>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-600/25 mb-4">
             <Box className="w-8 h-8" />
           </div>
           <h1 className="text-3xl font-extrabold text-white tracking-tight">Relixor</h1>
           <p className="text-sm text-slate-400 mt-1">
-            Enterprise Private APK Store & Release Platform
+            Secure release control for Android teams
           </p>
         </div>
 
@@ -80,7 +79,7 @@ export const Login: React.FC = () => {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="admin@relixor.internal"
+                  placeholder="you@company.com"
                   className="w-full pl-11 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors text-sm"
                 />
               </div>
@@ -119,35 +118,6 @@ export const Login: React.FC = () => {
             </button>
           </form>
 
-          {/* Quick Demo Logins */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <p className="text-xs font-medium text-slate-400 mb-3 text-center">
-              Quick Fill Demo Accounts:
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              <button
-                type="button"
-                onClick={() => handleFillDemo('admin@relixor.internal', 'AdminPassword123!')}
-                className="py-1.5 px-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-xs text-slate-300 font-medium transition-colors"
-              >
-                Admin
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFillDemo('dev@relixor.internal', 'DevPassword123!')}
-                className="py-1.5 px-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-xs text-slate-300 font-medium transition-colors"
-              >
-                Developer
-              </button>
-              <button
-                type="button"
-                onClick={() => handleFillDemo('viewer@relixor.internal', 'ViewerPassword123!')}
-                className="py-1.5 px-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-lg text-xs text-slate-300 font-medium transition-colors"
-              >
-                Viewer
-              </button>
-            </div>
-          </div>
         </div>
       </div>
     </div>

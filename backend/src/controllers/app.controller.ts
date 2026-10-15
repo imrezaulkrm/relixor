@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { z } from 'zod';
+import { Role } from '@prisma/client';
 import { prisma } from '../services/prisma';
 import { getStorageProvider } from '../storage';
 import { recordAuditLog } from '../services/auditService';
@@ -124,6 +125,14 @@ export async function getAppById(req: Request, res: Response, next: NextFunction
 
 export async function createApp(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (req.user?.role === Role.VIEWER) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Viewers have read-only access and cannot create applications.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     if (req.apiToken?.appId) {
       res.status(403).json({
         success: false,
@@ -180,6 +189,14 @@ export async function createApp(req: Request, res: Response, next: NextFunction)
 
 export async function updateApp(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (req.user?.role === Role.VIEWER) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Viewers have read-only access and cannot update applications.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const { appId } = req.params;
     const data = updateAppSchema.parse(req.body);
 
@@ -226,6 +243,14 @@ export async function updateApp(req: Request, res: Response, next: NextFunction)
 
 export async function deleteApp(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (req.user?.role !== Role.ADMIN) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Only administrators can delete applications.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const { appId } = req.params;
 
     const app = await prisma.app.findUnique({

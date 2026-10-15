@@ -73,6 +73,14 @@ export async function createToken(req: Request, res: Response, next: NextFunctio
       return;
     }
 
+    if (req.user.role === Role.VIEWER) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Viewers cannot create API tokens.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     // If an appId was provided, check that app exists
     if (data.appId) {
       const app = await prisma.app.findUnique({

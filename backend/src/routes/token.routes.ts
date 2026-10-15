@@ -9,6 +9,16 @@ const router = Router();
 router.use(authenticate);
 // Viewers cannot manage tokens
 router.use(requireRole(Role.ADMIN, Role.DEVELOPER));
+router.use((req, res, next) => {
+  if (req.authMethod === 'api_token') {
+    res.status(403).json({
+      success: false,
+      error: { message: 'API token management requires an interactive user session.', code: 'FORBIDDEN' },
+    });
+    return;
+  }
+  next();
+});
 
 router.get('/', listTokens);
 router.post('/', createToken);

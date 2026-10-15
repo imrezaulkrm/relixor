@@ -11,6 +11,9 @@ build/
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
+*.p12
 backend/.env
 
 # Logs
@@ -28,6 +31,7 @@ Thumbs.db
 storage/apks/*
 !storage/apks/.gitkeep
 backups/
+backup-state/
 
 # IDE / Editor
 .vscode/

@@ -32,18 +32,35 @@ export async function getDashboardStats(req: Request, res: Response, next: NextF
             },
           },
         }),
-        prisma.auditLog.findMany({
-          take: 10,
-          orderBy: { createdAt: 'desc' },
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
-            },
-            app: {
-              select: { id: true, name: true },
-            },
-          },
-        }),
+        // Fetch activity logs based on user role authorization
+        req.user?.role === 'ADMIN'
+          ? prisma.auditLog.findMany({
+              take: 10,
+              orderBy: { createdAt: 'desc' },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true },
+                },
+                app: {
+                  select: { id: true, name: true },
+                },
+              },
+            })
+          : req.user?.role === 'DEVELOPER'
+          ? prisma.auditLog.findMany({
+              where: { appId: { not: null } },
+              take: 10,
+              orderBy: { createdAt: 'desc' },
+              include: {
+                user: {
+                  select: { id: true, name: true, email: true },
+                },
+                app: {
+                  select: { id: true, name: true },
+                },
+              },
+            })
+          : Promise.resolve([]),
       ]);
 
     const storage = getStorageProvider();

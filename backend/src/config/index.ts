@@ -19,6 +19,12 @@ if (isProduction) {
       'FATAL CONFIGURATION ERROR: JWT_SECRET is too short. In production mode, JWT_SECRET must be at least 32 characters long.'
     );
   }
+  if (!process.env.ADMIN_DEFAULT_PASSWORD || process.env.ADMIN_DEFAULT_PASSWORD.length < 16) {
+    throw new Error('FATAL CONFIGURATION ERROR: ADMIN_DEFAULT_PASSWORD must be explicitly set to at least 16 characters in production.');
+  }
+  if (!process.env.CORS_ORIGIN || process.env.CORS_ORIGIN.trim() === '' || process.env.CORS_ORIGIN.includes('*')) {
+    throw new Error('FATAL CONFIGURATION ERROR: CORS_ORIGIN must explicitly list trusted origins in production.');
+  }
 }
 
 export const config = {

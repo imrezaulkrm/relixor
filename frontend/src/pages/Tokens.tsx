@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest, ApiError } from '../api/client';
 import { ApiTokenItem, AppItem, TokenPermission } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { formatDate } from '../utils/format';
 import {
   KeyRound,
@@ -16,6 +17,10 @@ import {
 } from 'lucide-react';
 
 export const Tokens: React.FC = () => {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'ADMIN';
+  const canGenerate = user?.role === 'ADMIN' || user?.role === 'DEVELOPER';
+
   const [tokens, setTokens] = useState<ApiTokenItem[]>([]);
   const [apps, setApps] = useState<AppItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -133,13 +138,15 @@ export const Tokens: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Generate API Token</span>
-        </button>
+        {canGenerate && (
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2 self-start sm:self-auto"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Generate API Token</span>
+          </button>
+        )}
       </div>
 
       {/* Security Tip Box */}
@@ -165,13 +172,15 @@ export const Tokens: React.FC = () => {
           <p className="text-sm text-slate-400 mb-6">
             Generate an API token to integrate your CI/CD build pipelines.
           </p>
-          <button
-            onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors inline-flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Generate Token</span>
-          </button>
+          {canGenerate && (
+            <button
+              onClick={() => setIsCreateOpen(true)}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-xl transition-colors inline-flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Generate Token</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
@@ -236,24 +245,26 @@ export const Tokens: React.FC = () => {
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {!token.revoked && (
+                      {((isAdmin || token.user?.id === user?.id)) && (
+                        <div className="flex items-center justify-end gap-2">
+                          {!token.revoked && (
+                            <button
+                              onClick={() => handleRevoke(token.id)}
+                              className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-colors"
+                              title="Revoke Token"
+                            >
+                              <Ban className="w-4 h-4" />
+                            </button>
+                          )}
                           <button
-                            onClick={() => handleRevoke(token.id)}
-                            className="p-1.5 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-colors"
-                            title="Revoke Token"
+                            onClick={() => handleDelete(token.id)}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                            title="Delete Token"
                           >
-                            <Ban className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
-                        )}
-                        <button
-                          onClick={() => handleDelete(token.id)}
-                          className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
-                          title="Delete Token"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -311,7 +322,9 @@ export const Tokens: React.FC = () => {
                 >
                   <option value="WRITE">WRITE — Publish & download APK releases (Recommended for CI)</option>
                   <option value="READ">READ — Read and download artifacts only</option>
-                  <option value="ADMIN">ADMIN — Full administration access</option>
+                  {isAdmin && (
+                    <option value="ADMIN">ADMIN — Full administration access</option>
+                  )}
                 </select>
               </div>
 

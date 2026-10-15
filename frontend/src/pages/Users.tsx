@@ -47,8 +47,20 @@ export const Users: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (currentUser?.role === 'ADMIN') {
+      fetchUsers();
+    }
+  }, [currentUser]);
+
+  if (currentUser?.role !== 'ADMIN') {
+    return (
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center max-w-md mx-auto">
+        <AlertCircle className="w-8 h-8 text-rose-500 mx-auto mb-3" />
+        <h3 className="text-base font-bold text-slate-100 mb-1">Access Denied</h3>
+        <p className="text-xs text-slate-400">User Management requires Administrator privileges.</p>
+      </div>
+    );
+  }
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,13 +345,17 @@ export const Users: React.FC = () => {
                 </label>
                 <select
                   value={editRole}
+                  disabled={editingUser.id === currentUser?.id}
                   onChange={(e) => setEditRole(e.target.value as Role)}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="ADMIN">ADMIN</option>
                   <option value="DEVELOPER">DEVELOPER</option>
                   <option value="VIEWER">VIEWER</option>
                 </select>
+                {editingUser.id === currentUser?.id && (
+                  <p className="text-[11px] text-amber-400 mt-1">You cannot change your own role.</p>
+                )}
               </div>
 
               <div>
@@ -348,12 +364,16 @@ export const Users: React.FC = () => {
                 </label>
                 <select
                   value={editActive ? 'true' : 'false'}
+                  disabled={editingUser.id === currentUser?.id}
                   onChange={(e) => setEditActive(e.target.value === 'true')}
-                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <option value="true">Active</option>
                   <option value="false">Deactivated</option>
                 </select>
+                {editingUser.id === currentUser?.id && (
+                  <p className="text-[11px] text-amber-400 mt-1">You cannot deactivate your own account.</p>
+                )}
               </div>
 
               <div>

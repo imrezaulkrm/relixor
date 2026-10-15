@@ -31,7 +31,7 @@ router.post(
 router.delete(
   '/:releaseId',
   requireRole(Role.ADMIN, Role.DEVELOPER),
-  requirePermission(TokenPermission.ADMIN),
+  requirePermission(TokenPermission.WRITE),
   deleteRelease
 );
 

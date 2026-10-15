@@ -4,15 +4,15 @@ services:
     container_name: relixor-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-relixor}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-relixor_secure_pass_2026}
-      POSTGRES_DB: ${POSTGRES_DB:-relixor}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
     volumes:
       - relixor_pgdata:/var/lib/postgresql/data
     ports:
       - "${POSTGRES_PORT:-5434}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-relixor} -d ${POSTGRES_DB:-relixor}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -31,16 +31,16 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgresql://${POSTGRES_USER:-relixor}:${POSTGRES_PASSWORD:-relixor_secure_pass_2026}@postgres:5432/${POSTGRES_DB:-relixor}?schema=public
-      JWT_SECRET: ${JWT_SECRET:-relixor_super_secret_jwt_key_minimum_32_characters!}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
       STORAGE_LOCAL_DIR: /app/storage/apks
       MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-500}
-      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost,http://localhost:3000,http://127.0.0.1}
-      ADMIN_DEFAULT_EMAIL: ${ADMIN_DEFAULT_EMAIL:-admin@relixor.internal}
-      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:-AdminPassword123!}
-      ADMIN_DEFAULT_NAME: ${ADMIN_DEFAULT_NAME:-System Administrator}
+      CORS_ORIGIN: ${CORS_ORIGIN:?CORS_ORIGIN is required}
+      ADMIN_DEFAULT_EMAIL: ${ADMIN_DEFAULT_EMAIL:?ADMIN_DEFAULT_EMAIL is required}
+      ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:?ADMIN_DEFAULT_PASSWORD is required}
+      ADMIN_DEFAULT_NAME: ${ADMIN_DEFAULT_NAME:?ADMIN_DEFAULT_NAME is required}
     volumes:
       - relixor_storage:/app/storage/apks
     healthcheck:

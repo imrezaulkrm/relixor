@@ -21,6 +21,14 @@ const updateUserSchema = z.object({
 
 export async function listUsers(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (!req.user || req.user.role !== Role.ADMIN) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Admin role required to manage users.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -51,6 +59,14 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
 
 export async function createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (!req.user || req.user.role !== Role.ADMIN) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Admin role required to manage users.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const data = createUserSchema.parse(req.body);
     const email = data.email.toLowerCase().trim();
 
@@ -106,6 +122,14 @@ export async function createUser(req: Request, res: Response, next: NextFunction
 
 export async function updateUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (!req.user || req.user.role !== Role.ADMIN) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Admin role required to manage users.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const { userId } = req.params;
     const data = updateUserSchema.parse(req.body);
 
@@ -119,6 +143,24 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
         error: { message: 'User not found', code: 'USER_NOT_FOUND' },
       });
       return;
+    }
+
+    // Prevent users from modifying their own role or active status
+    if (req.user?.id === userId) {
+      if (data.role !== undefined && data.role !== targetUser.role) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'You cannot change your own role.', code: 'CANNOT_MODIFY_OWN_ROLE' },
+        });
+        return;
+      }
+      if (data.isActive !== undefined && data.isActive !== targetUser.isActive) {
+        res.status(400).json({
+          success: false,
+          error: { message: 'You cannot deactivate your own account.', code: 'CANNOT_DEACTIVATE_SELF' },
+        });
+        return;
+      }
     }
 
     // Prevent deactivating or demoting the last active ADMIN
@@ -181,6 +223,14 @@ export async function updateUser(req: Request, res: Response, next: NextFunction
 
 export async function deleteUser(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
+    if (!req.user || req.user.role !== Role.ADMIN) {
+      res.status(403).json({
+        success: false,
+        error: { message: 'Admin role required to manage users.', code: 'FORBIDDEN' },
+      });
+      return;
+    }
+
     const { userId } = req.params;
 
     if (req.user?.id === userId) {
