@@ -14,5 +14,8 @@
     "docker:up": "docker compose up -d --build",
     "docker:down": "docker compose down",
     "docker:logs": "docker compose logs -f"
+  },
+  "devDependencies": {
+    "playwright": "^1.64.1"
   }
 }

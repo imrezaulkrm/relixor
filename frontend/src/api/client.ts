@@ -59,9 +59,15 @@ export async function apiRequest<T>(
 
 export async function downloadFile(url: string, filename: string): Promise<void> {
   const token = localStorage.getItem('relixor_auth_token');
-  const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`;
+  let targetUrl = url;
+  if (!targetUrl.startsWith('http')) {
+    if (!targetUrl.startsWith('/api/')) {
+      targetUrl = `${API_BASE}${targetUrl.startsWith('/') ? targetUrl : `/${targetUrl}`}`;
+    }
+    targetUrl = `${window.location.origin}${targetUrl}`;
+  }
 
-  const response = await fetch(fullUrl, {
+  const response = await fetch(targetUrl, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 

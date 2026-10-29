@@ -96,9 +96,10 @@ cp .env.example .env
 ```
 
 Review `.env` and configure your credentials. Defaults:
+- Database Host Port: `POSTGRES_PORT=5434` (selected to avoid conflict with existing PostgreSQL instances on host port 5432)
 - Database: `POSTGRES_USER=relixor`, `POSTGRES_DB=relixor`
-- Initial Admin: `admin@relixor.internal` / `AdminPassword123!`
-- HTTP Port: `8080` (or `80`)
+- Initial Admin: `admin@relixor.internal` / strong password (minimum 12 characters in production)
+- Web HTTP Port: `8080` (or `80`)
 
 ### 2. Start the Stack
 
@@ -106,19 +107,31 @@ Review `.env` and configure your credentials. Defaults:
 docker compose up -d --build
 ```
 
-### 3. Initialize Database & Demo Seed Data
+### 3. Initialize Database & Seed
+
+Prisma migrations run automatically on container startup. To seed the database with initial admin and sample data:
 
 ```bash
 docker compose exec backend npm run prisma:seed
 ```
 
+To seed demo developer/viewer accounts and demo releases in test/UAT mode, ensure `SEED_DEMO_DATA=true` is set.
+
 ### 4. Access Relixor
 
-- Web Dashboard: [http://localhost:8080](http://localhost:8080) (or configured port)
+- Web Dashboard: [http://localhost:8080](http://localhost:8080) (or configured HTTP_PORT)
 - Health Check: [http://localhost:8080/health](http://localhost:8080/health)
-- Default Admin Login:
-  - **Email:** `admin@relixor.internal`
-  - **Password:** `AdminPassword123!`
+- Seeded Accounts:
+  - **Admin:** `admin@relixor.internal` (full platform administration)
+  - **Developer:** `dev@relixor.internal` / `DevPassword123!` (app & release management, scoped tokens)
+  - **Viewer:** `viewer@relixor.internal` / `ViewerPassword123!` (read-only browsing and authorized APK download)
+
+### 5. Safe Operations & Restart (Preserving Data)
+
+- **Stop containers safely:** `docker compose stop` (preserves all data and volumes)
+- **Start stopped containers:** `docker compose start`
+- **Recreate application after edits:** `docker compose up -d --build backend`
+- **DO NOT** run `docker compose down -v` as this permanently deletes PostgreSQL and APK storage volumes.
 
 ---
 
@@ -472,20 +485,42 @@ When deploying Relixor in production environments:
 
 ## 🧪 Verification & Test Commands
 
-Run automated backend tests (covers authentication, role-based access control, token scoping, duplicate prevention, and APK binary publishing):
-
+### 1. Static Checks & Builds
 ```bash
-npm test
+# Build backend TypeScript
+npm run build:backend
+
+# Build frontend production bundle
+npm run build:frontend
+
+# Script syntax and git whitespace checks
+bash -n scripts/*.sh
+git diff --check
 ```
 
-Build and test both frontend and backend bundles:
-
+### 2. Backend Unit & Integration Tests (Jest)
+Runs 4 test suites (43 tests) covering authentication, RBAC, releases, path traversal defense, and security controls against an isolated database:
 ```bash
-npm run build
+NODE_ENV=test DATABASE_URL="postgresql://relixor:relixor_local_db_2026@127.0.0.1:5434/relixor_test?schema=public" npm test
 ```
 
-Seed initial administrator and sample data:
-
+### 3. Automated Browser End-to-End Tests (Playwright)
+Executes 26 end-to-end browser and direct API scenarios against the running stack at `http://localhost:8080`, verifying login, UI navigation, APK upload, duplicate rejection, bit-for-bit SHA-256 download checksum validation, QR codes, and VIEWER download permissions:
 ```bash
-./scripts/seed-admin.sh "admin@relixor.internal" "AdminPassword123!" "System Administrator"
+node scripts/e2e-uat-runner.mjs
 ```
+
+### 4. Disaster Recovery & Backup/Restore Test
+Validates atomic database dumping, artifact tarball creation, SHA-256 manifests, integrity checks, clean restoration into a disposable target, and rejection of corrupted/missing archives:
+```bash
+./scripts/test-backup-restore.sh
+```
+
+---
+
+## 📑 Detailed Reports & Handover
+
+- **UAT Verification Report:** [docs/UAT_REPORT.md](docs/UAT_REPORT.md) — Comprehensive test results, pass/fail matrices, verified capabilities, and defect resolution details.
+- **Agent Handover Document:** [docs/AGENT_HANDOVER.md](docs/AGENT_HANDOVER.md) — Persistent checkpointing, environment state, and resume instructions for future agents.
+- **Project Status & Evidence Tracker:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) — High-level verification status by module.
+- **Architecture & Code Map:** [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md) — Monorepo layout and service boundaries.

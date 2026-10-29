@@ -4,6 +4,13 @@ set -euo pipefail
 # Relixor Full Backup Script
 # Creates a snapshot of PostgreSQL database and stored APK artifacts.
 
+# Save explicitly passed environment overrides
+EXPLICIT_DATABASE_URL="${DATABASE_URL:-}"
+EXPLICIT_STORAGE_DIR="${STORAGE_DIR:-}"
+EXPLICIT_BACKUP_DIR="${BACKUP_DIR:-}"
+EXPLICIT_POSTGRES_USER="${POSTGRES_USER:-}"
+EXPLICIT_POSTGRES_DB="${POSTGRES_DB:-}"
+
 # Load environment if present
 if [ -f .env ]; then
   set -a; source .env; set +a
@@ -11,8 +18,13 @@ elif [ -f backend/.env ]; then
   set -a; source backend/.env; set +a
 fi
 
+DATABASE_URL="${EXPLICIT_DATABASE_URL:-${DATABASE_URL:-}}"
+STORAGE_DIR="${EXPLICIT_STORAGE_DIR:-${STORAGE_DIR:-./storage/apks}}"
+POSTGRES_USER="${EXPLICIT_POSTGRES_USER:-${POSTGRES_USER:-}}"
+POSTGRES_DB="${EXPLICIT_POSTGRES_DB:-${POSTGRES_DB:-}}"
+
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-BACKUP_DIR="${BACKUP_DIR:-./backups/relixor_backup_${TIMESTAMP}}"
+BACKUP_DIR="${EXPLICIT_BACKUP_DIR:-${BACKUP_DIR:-./backups/relixor_backup_${TIMESTAMP}}}"
 STORAGE_DIR="${STORAGE_DIR:-./storage/apks}"
 BACKUP_PARENT=$(dirname "${BACKUP_DIR}")
 mkdir -p "${BACKUP_PARENT}"
@@ -34,7 +46,12 @@ echo "=========================================================="
 
 # 1. Database Backup
 echo "📦 Backing up PostgreSQL database..."
-if docker ps | grep -q "relixor-postgres"; then
+if [ -n "${BACKUP_CONTAINER:-}" ]; then
+  docker exec "${BACKUP_CONTAINER}" pg_dump -U "${POSTGRES_USER:?POSTGRES_USER is required}" "${POSTGRES_DB:?POSTGRES_DB is required}" > "${TEMP_DIR}/database.sql"
+elif [ -n "${EXPLICIT_DATABASE_URL}" ]; then
+  CLEAN_DB_URL="${EXPLICIT_DATABASE_URL%%\?*}"
+  pg_dump "${CLEAN_DB_URL}" > "${TEMP_DIR}/database.sql"
+elif docker ps | grep -q "relixor-postgres"; then
   docker exec relixor-postgres pg_dump -U "${POSTGRES_USER:?POSTGRES_USER is required}" "${POSTGRES_DB:?POSTGRES_DB is required}" > "${TEMP_DIR}/database.sql"
 elif [ -n "${DATABASE_URL:-}" ]; then
   CLEAN_DB_URL="${DATABASE_URL%%\?*}"

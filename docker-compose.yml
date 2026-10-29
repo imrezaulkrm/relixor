@@ -41,6 +41,7 @@ services:
       ADMIN_DEFAULT_EMAIL: ${ADMIN_DEFAULT_EMAIL:?ADMIN_DEFAULT_EMAIL is required}
       ADMIN_DEFAULT_PASSWORD: ${ADMIN_DEFAULT_PASSWORD:?ADMIN_DEFAULT_PASSWORD is required}
       ADMIN_DEFAULT_NAME: ${ADMIN_DEFAULT_NAME:?ADMIN_DEFAULT_NAME is required}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-false}
     volumes:
       - relixor_storage:/app/storage/apks
     healthcheck:
