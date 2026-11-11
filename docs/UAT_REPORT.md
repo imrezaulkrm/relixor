@@ -162,3 +162,7 @@ node scripts/e2e-uat-runner.mjs
 2. **Encrypted Backup Export Prerequisites:** Automated encrypted backup export requires `age` and `age-keygen` utilities to be installed on host or container.
 3. **QR Code Query Parameter Authentication:** Direct mobile install QR codes encode the auth token in the query string (`?token=...`). A short-lived, single-use ticket mechanism should replace bearer tokens in URLs prior to public production.
 4. **Single-Tenant Schema:** Prisma schema is currently single-tenant; multi-tenancy or organization partitioning is not implemented.
+
+## 7. Fresh environment audit — 2026-11-11
+
+PASS: builds, shell syntax, whitespace, backend Prisma validation, Compose validation, fresh migration/health, direct API auth/RBAC, structural APK upload/download with matching checksum, backend/PostgreSQL restart persistence, and `./scripts/test-backup-restore.sh`. BLOCKED: `./scripts/test-encrypted-backup.sh` because age tools are unavailable. NOT TESTED: Jest against the fresh DB because the production image omits dev dependencies and the DB is internal-only. FAIL/BLOCKED: complete Playwright harness; its current login-validation assertions/credential assumptions prevented completion, so no full browser pass count is claimed. The APK fixture was structural rather than installable Android; QR bearer query tokens remain a public-production blocker.

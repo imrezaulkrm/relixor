@@ -1,0 +1,22 @@
+services:
+  postgres:
+    container_name: relixor-e2e-fresh-postgres
+    ports: !reset []
+  backend:
+    container_name: relixor-e2e-fresh-backend
+  frontend:
+    container_name: relixor-e2e-fresh-frontend
+  nginx:
+    container_name: relixor-e2e-fresh-nginx
+    ports: !override
+      - "127.0.0.1::80"
+  
+volumes:
+  relixor_pgdata:
+    name: relixor-e2e-fresh-pgdata
+  relixor_storage:
+    name: relixor-e2e-fresh-storage
+
+networks:
+  relixor_net:
+    name: relixor-e2e-fresh-net

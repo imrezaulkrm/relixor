@@ -32,3 +32,7 @@ Status reflects executed runtime evidence from the isolated UAT environment (`re
 - Detailed UAT Report: [docs/UAT_REPORT.md](UAT_REPORT.md)
 - Architectural Decisions: [docs/DECISIONS.md](DECISIONS.md)
 - Architecture & Boundaries: [docs/PROJECT_MAP.md](PROJECT_MAP.md)
+
+## Fresh-environment audit (2026-11-11)
+
+Fresh Compose project `relixor-e2e-fresh` passed image builds, migrations, seed/bootstrap, health checks, direct API authentication/RBAC, structural APK upload/download with matching SHA-256, backup/restore, and backend/PostgreSQL restart persistence. PostgreSQL was internal-only; Nginx used loopback Docker-assigned port `32769`. The existing Playwright harness did not complete because current assertions/credential assumptions did not match the fresh run; Jest against the fresh database was not tested because the production image omits dev dependencies and the disposable database was not host-published. Encrypted backup is blocked by missing `age`/`age-keygen`. Verdict: **READY FOR INTERNAL DEMO** only.

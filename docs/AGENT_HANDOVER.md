@@ -193,3 +193,7 @@ Configured in `.env`:
 | 2026-10-29 17:06 | Level C E2E Suite | Executed `node scripts/e2e-uat-runner.mjs`. | PASS: 26/26 browser & API scenarios passed. VIEWER APK download verified. |
 | 2026-10-29 17:07 | Level D Persistence | Recreated backend container & restarted postgres container. | PASS: Artifacts and database records verified intact across restarts. |
 | 2026-10-29 17:08 | Level E Security | Verified host container isolation and log cleanliness. | PASS: Port 5432 container untouched; no secrets leaked. |
+
+## Fresh audit checkpoint (2026-11-11)
+
+Fresh project: `relixor-e2e-fresh`; dedicated volumes `relixor-e2e-fresh-pgdata` and `relixor-e2e-fresh-storage`; PostgreSQL internal-only; Nginx observed on loopback port `32769`. PASS: build, migration, seed, health, direct API auth/RBAC, structural APK checksum, backup/restore, and restart persistence. BLOCKED/NOT TESTED: age encryption, complete Playwright harness, and Jest against the fresh DB. Safe stop: `docker compose --env-file .env.e2e -f docker-compose.yml -f docker-compose.e2e.yml -p relixor-e2e-fresh stop`.

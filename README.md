@@ -520,6 +520,10 @@ Validates atomic database dumping, artifact tarball creation, SHA-256 manifests,
 
 ## 📑 Detailed Reports & Handover
 
+### Fresh isolated audit note (2026-11-11)
+
+The fresh `relixor-e2e-fresh` stack passed builds, migration, health, direct API auth/RBAC, structural APK checksum, restart persistence, and disposable backup/restore. Browser completion and encrypted export remain blocked as recorded in [docs/UAT_REPORT.md](docs/UAT_REPORT.md). This supports an internal demo only; configure TLS and replace QR bearer query tokens before public exposure.
+
 - **UAT Verification Report:** [docs/UAT_REPORT.md](docs/UAT_REPORT.md) — Comprehensive test results, pass/fail matrices, verified capabilities, and defect resolution details.
 - **Agent Handover Document:** [docs/AGENT_HANDOVER.md](docs/AGENT_HANDOVER.md) — Persistent checkpointing, environment state, and resume instructions for future agents.
 - **Project Status & Evidence Tracker:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) — High-level verification status by module.

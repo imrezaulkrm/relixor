@@ -26,3 +26,5 @@ Never expose secrets in docs or commands. Treat restore as destructive and use o
 - S3-compatible remote upload is NOT IMPLEMENTED.
 
 Detailed execution results recorded in [docs/UAT_REPORT.md](../UAT_REPORT.md).
+
+Fresh audit note (2026-11-11): `relixor-e2e-fresh` deployment, migrations, health, restart persistence, and disposable backup/restore passed with PostgreSQL unpublished. Encrypted export remains blocked by missing age tools; complete browser verification was not certified.
