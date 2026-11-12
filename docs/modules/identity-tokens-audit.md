@@ -12,6 +12,8 @@ User administration, API-token lifecycle, audit event recording/querying, and th
 
 Roles are `ADMIN`, `DEVELOPER`, and `VIEWER`; token permissions are `READ`, `WRITE`, and `ADMIN`. Token hashes, not plaintext, are persisted. Developers cannot create ADMIN tokens; user/token administration is not available through API-token auth. Audit access is role-aware but the schema has no organization boundary.
 
+Module 02 leaves token authentication, hashes, scopes, and CI upload semantics unchanged. Resource authorization treats an app-scoped token as authorized for its own app and evaluates a global token against its owner's project/app membership; membership management remains session-only and ADMIN-only. See [projects-rbac.md](projects-rbac.md).
+
 ## Evidence and acceptance
 
 - **Status:** **VERIFIED**

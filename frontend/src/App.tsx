@@ -5,12 +5,20 @@ import { Sidebar, NavTab } from './components/Sidebar';
 import { Login } from './pages/Login';
 import { Home } from './pages/Home';
 import { Dashboard } from './pages/Dashboard';
+import { Projects } from './pages/Projects';
+import { ProjectDetails } from './pages/ProjectDetails';
 import { Apps } from './pages/Apps';
 import { AppDetails } from './pages/AppDetails';
 import { Tokens } from './pages/Tokens';
 import { Users } from './pages/Users';
 import { AuditLogs } from './pages/AuditLogs';
 import { CiCdDocs } from './pages/CiCdDocs';
+import { Docs } from './pages/Docs';
+import { Profile } from './pages/Profile';
+import { Releases } from './pages/Releases';
+import { QaReports } from './pages/QaReports';
+import { Retention } from './pages/Retention';
+import { PublicPortal } from './pages/PublicPortal';
 
 import { ShieldAlert } from 'lucide-react';
 
@@ -33,7 +41,16 @@ const AccessDenied: React.FC<{ message: string; onBack: () => void }> = ({ messa
 export const AppContent: React.FC = () => {
   const { user, isLoading } = useAuth();
   const [currentTab, setCurrentTab] = useState<NavTab>('dashboard');
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+
+  if (window.location.pathname.startsWith('/portal')) {
+    return <PublicPortal />;
+  }
+
+  if (window.location.pathname.startsWith('/docs')) {
+    return <Docs />;
+  }
 
   if (isLoading) {
     return (
@@ -55,7 +72,14 @@ export const AppContent: React.FC = () => {
 
   const handleSelectTab = (tab: NavTab) => {
     setSelectedAppId(null);
+    setSelectedProjectId(null);
     setCurrentTab(tab);
+  };
+
+  const handleSelectProject = (projectId: string) => {
+    setSelectedProjectId(projectId);
+    setSelectedAppId(null);
+    setCurrentTab('projects');
   };
 
   const handleSelectApp = (appId: string) => {
@@ -82,8 +106,22 @@ export const AppContent: React.FC = () => {
                 if (tab === 'tokens') handleSelectTab('tokens');
                 if (tab === 'docs') handleSelectTab('docs');
                 if (tab === 'audit') handleSelectTab('audit');
+                if (tab === 'releases') handleSelectTab('releases');
+                if (tab === 'qa') handleSelectTab('qa');
               }}
             />
+          )}
+
+          {currentTab === 'projects' && (
+            selectedProjectId ? (
+              <ProjectDetails
+                projectId={selectedProjectId}
+                onBack={() => setSelectedProjectId(null)}
+                onSelectApp={handleSelectApp}
+              />
+            ) : (
+              <Projects onSelectProject={handleSelectProject} />
+            )
           )}
 
           {currentTab === 'apps' && (
@@ -91,6 +129,21 @@ export const AppContent: React.FC = () => {
               <AppDetails appId={selectedAppId} onBack={handleBackToApps} />
             ) : (
               <Apps onSelectApp={handleSelectApp} />
+            )
+          )}
+
+          {currentTab === 'releases' && <Releases />}
+
+          {currentTab === 'qa' && <QaReports />}
+
+          {currentTab === 'retention' && (
+            isAdmin ? (
+              <Retention />
+            ) : (
+              <AccessDenied
+                message="Retention administration requires Administrator privileges."
+                onBack={() => handleSelectTab('dashboard')}
+              />
             )
           )}
 
@@ -128,6 +181,8 @@ export const AppContent: React.FC = () => {
           )}
 
           {currentTab === 'docs' && <CiCdDocs />}
+
+          {currentTab === 'profile' && <Profile />}
         </main>
       </div>
     </div>

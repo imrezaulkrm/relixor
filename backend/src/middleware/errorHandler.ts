@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { ZodError } from 'zod';
 import multer from 'multer';
 import { logger } from '../utils/logger';
+import { config } from '../config';
 
 export function errorHandler(
   err: unknown,
@@ -47,10 +48,11 @@ export function errorHandler(
   }
 
   if (err instanceof Error) {
+    // Do not leak storage paths, ORM internals or filesystem details in production.
     res.status(400).json({
       success: false,
       error: {
-        message: err.message,
+        message: config.env === 'production' ? 'The request could not be completed.' : err.message,
         code: 'BAD_REQUEST',
       },
     });

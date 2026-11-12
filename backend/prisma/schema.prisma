@@ -13,11 +13,39 @@ enum Role {
   VIEWER
 }
 
+enum MembershipRole {
+  DEVELOPER
+  VIEWER
+}
+
 enum ReleaseChannel {
   DEV
   QA
   STAGING
+  BETA
   PRODUCTION
+}
+
+enum ReleaseStatus {
+  DRAFT
+  UPLOADED
+  PENDING_APPROVAL
+  APPROVED
+  PUBLISHED
+  REJECTED
+  DEPRECATED
+  ARCHIVED
+}
+
+enum QaStatus {
+  PASS
+  FAIL
+  BLOCKED
+}
+
+enum CleanupMode {
+  DRY_RUN
+  EXECUTE
 }
 
 enum TokenPermission {
@@ -36,26 +64,60 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
-  releases     Release[]
-  tokens       ApiToken[]
-  auditLogs    AuditLog[]
+  releases                Release[] @relation("ReleaseUploadedBy")
+  approvedReleases        Release[] @relation("ReleaseApprovedBy")
+  tokens                  ApiToken[]
+  auditLogs               AuditLog[]
+  tokenVersion            Int              @default(0)
+  loginEvents             LoginEvent[]
+  sessions                UserSession[]
+  passwordResets          PasswordResetToken[] @relation("UserPasswordResets")
+  createdPasswordResets   PasswordResetToken[] @relation("PasswordResetCreatedBy")
+  qaVerifications         QaVerification[]
+  statusChanges           ReleaseStatusHistory[]
+  cleanupRuns             CleanupRun[]
+  projectMemberships      ProjectMembership[] @relation("UserProjectMemberships")
+  createdProjectMembers   ProjectMembership[] @relation("ProjectMembershipCreatedBy")
+  appMemberships          AppMembership[]     @relation("UserAppMemberships")
+  createdAppMembers       AppMembership[]     @relation("AppMembershipCreatedBy")
 
   @@map("users")
 }
 
+model Project {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  description String?
+  iconUrl     String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  apps        App[]
+  memberships ProjectMembership[]
+
+  @@map("projects")
+}
+
 model App {
   id          String     @id @default(uuid())
+  projectId   String
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Restrict)
   name        String
   packageName String     @unique
   description String?
   iconUrl     String?
+  isPublic    Boolean    @default(false)
+  publicSlug  String?    @unique
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
 
   releases    Release[]
   tokens      ApiToken[]
   auditLogs   AuditLog[]
+  memberships AppMembership[]
 
+  @@index([projectId])
   @@map("apps")
 }
 
@@ -63,26 +125,163 @@ model Release {
   id               String         @id @default(uuid())
   appId            String
   app              App            @relation(fields: [appId], references: [id], onDelete: Cascade)
-  version          String
-  versionCode      Int
-  channel          ReleaseChannel @default(DEV)
-  releaseNotes     String?
-  fileName         String
-  storageKey       String
-  fileSize         Int
-  sha256           String
-  downloadCount    Int            @default(0)
-  minSdkVersion    Int?
-  targetSdkVersion Int?
-  uploadedById     String?
-  uploadedBy       User?          @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
+  version           String
+  versionCode       Int
+  channel           ReleaseChannel @default(DEV)
+  status            ReleaseStatus  @default(UPLOADED)
+  title             String?
+  description       String?
+  releaseNotes      String?
+  fileName          String
+  storageKey        String
+  fileSize          Int
+  sha256            String
+  downloadCount     Int            @default(0)
+  minSdkVersion     Int?
+  targetSdkVersion  Int?
+  isMandatory       Boolean        @default(false)
+  minSupportedVersionCode Int?
+  isPinned          Boolean        @default(false)
+  gitCommitSha      String?
+  gitBranch         String?
+  gitlabPipelineId  String?
+  gitlabPipelineUrl String?
+  buildTimestamp    DateTime?
+  uploadedById      String?
+  uploadedBy        User?          @relation("ReleaseUploadedBy", fields: [uploadedById], references: [id], onDelete: SetNull)
+  approvedById      String?
+  approvedBy        User?          @relation("ReleaseApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  approvedAt        DateTime?
+  rejectionReason   String?
+  publishedAt       DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  statusHistory     ReleaseStatusHistory[]
+  qaVerifications  QaVerification[]
+  downloadTickets  DownloadTicket[]
 
   @@unique([appId, version, versionCode], name: "app_version_unique")
   @@index([appId])
   @@index([channel])
+  @@index([status])
   @@map("releases")
+}
+
+model ReleaseStatusHistory {
+  id           String        @id @default(uuid())
+  releaseId    String
+  release      Release       @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  fromStatus   ReleaseStatus?
+  toStatus     ReleaseStatus
+  reason       String?
+  changedById  String?
+  changedBy    User?         @relation(fields: [changedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime      @default(now())
+
+  @@index([releaseId])
+  @@map("release_status_history")
+}
+
+model QaVerification {
+  id          String    @id @default(uuid())
+  releaseId   String
+  release     Release   @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  reviewerId  String
+  reviewer    User      @relation(fields: [reviewerId], references: [id], onDelete: Cascade)
+  status      QaStatus
+  notes       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([releaseId, reviewerId], name: "qa_release_reviewer_unique")
+  @@index([releaseId])
+  @@map("qa_verifications")
+}
+
+model UserSession {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+model PasswordResetToken {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation("UserPasswordResets", fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash   String    @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdById String?
+  createdBy   User?     @relation("PasswordResetCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+model DownloadTicket {
+  id         String    @id @default(uuid())
+  releaseId  String
+  release    Release   @relation(fields: [releaseId], references: [id], onDelete: Cascade)
+  appId      String
+  userId     String?
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([releaseId])
+  @@index([expiresAt])
+  @@map("download_tickets")
+}
+
+model LoginEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  action    String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("login_events")
+}
+
+model RetentionPolicy {
+  id            String         @id @default(uuid())
+  channel       ReleaseChannel @unique
+  retentionDays Int
+  enabled       Boolean        @default(true)
+  updatedAt     DateTime       @updatedAt
+  createdAt     DateTime       @default(now())
+
+  @@map("retention_policies")
+}
+
+model CleanupRun {
+  id               String      @id @default(uuid())
+  mode             CleanupMode
+  channel          ReleaseChannel?
+  releasesConsidered Int       @default(0)
+  releasesDeleted  Int         @default(0)
+  bytesFreed       Int         @default(0)
+  details          String?
+  executedById     String?
+  executedBy       User?       @relation(fields: [executedById], references: [id], onDelete: SetNull)
+  createdAt        DateTime    @default(now())
+
+  @@index([createdAt])
+  @@map("cleanup_runs")
 }
 
 model ApiToken {
@@ -123,4 +322,40 @@ model AuditLog {
   @@index([entityType])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+model ProjectMembership {
+  id          String         @id @default(uuid())
+  projectId   String
+  project     Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User           @relation("UserProjectMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  role        MembershipRole @default(DEVELOPER)
+  createdById String?
+  createdBy   User?          @relation("ProjectMembershipCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([projectId, userId], name: "project_user_unique")
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_memberships")
+}
+
+model AppMembership {
+  id          String         @id @default(uuid())
+  appId       String
+  app         App            @relation(fields: [appId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User           @relation("UserAppMemberships", fields: [userId], references: [id], onDelete: Cascade)
+  role        MembershipRole @default(DEVELOPER)
+  createdById String?
+  createdBy   User?          @relation("AppMembershipCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@unique([appId, userId], name: "app_user_unique")
+  @@index([appId])
+  @@index([userId])
+  @@map("app_memberships")
 }

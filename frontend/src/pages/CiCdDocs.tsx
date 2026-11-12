@@ -170,13 +170,92 @@ curl --fail-with-body --show-error --location \\
   "\${APK_STORE_URL}/api/v1/apps/\${APK_STORE_APP_ID}/releases"
 `;
 
+  const setupChecklist = [
+    'Clone the repository and configure your local environment variables from the template.',
+    'Start the stack with Docker Compose or the project dev scripts.',
+    'Create an admin account, then create a Project and an App.',
+    'Generate a scoped API token and connect your CI/CD pipeline or release script.',
+    'Upload an APK, review release metadata, and publish through the intended channel.'
+  ];
+
+  const envExample = `# .env
+NODE_ENV=development
+PORT=5000
+APP_URL=http://localhost:8080
+HTTP_PORT=8080
+
+DATABASE_URL=postgresql://relixor:postgres@localhost:5434/relixor?schema=public
+JWT_SECRET=replace_with_secure_secret
+JWT_EXPIRES_IN=7d
+CORS_ORIGIN=http://localhost,http://localhost:3000
+
+STORAGE_PROVIDER=local
+STORAGE_LOCAL_DIR=/app/storage/apks
+ADMIN_DEFAULT_EMAIL=admin@relixor.internal
+ADMIN_DEFAULT_PASSWORD=ChangeMeImmediately123!
+`;
+
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">CI/CD & REST API Integration</h1>
+        <h1 className="text-2xl font-bold text-white tracking-tight">Relixor Setup & Integration Guide</h1>
         <p className="text-sm text-slate-400 mt-1">
-          Complete guides and code snippets for automated pipeline publishing to Relixor.
+          Install, connect, and operate the project with a working environment, app registration, and release pipeline.
         </p>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div className="flex items-center gap-2 text-xs font-bold tracking-[0.2em] text-indigo-300 uppercase">
+            <Server className="w-4 h-4" />
+            Quick start
+          </div>
+
+          <ol className="space-y-3 text-sm text-slate-300">
+            {setupChecklist.map((step, index) => (
+              <li key={step} className="flex gap-3">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-indigo-500/15 text-[11px] font-bold text-indigo-300">
+                  {index + 1}
+                </span>
+                <span className="leading-6">{step}</span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 mb-2">Example environment</p>
+            <pre className="overflow-x-auto text-[11px] leading-relaxed text-slate-300 font-mono">
+              {envExample}
+            </pre>
+          </div>
+        </div>
+
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
+          <div className="flex items-center gap-2 text-xs font-bold tracking-[0.2em] text-emerald-300 uppercase">
+            <ShieldCheck className="w-4 h-4" />
+            Connect the project
+          </div>
+
+          <div className="space-y-3 text-sm text-slate-300">
+            <p>Use the project URL in your browser after starting the app:</p>
+            <div className="rounded-lg border border-slate-800 bg-slate-950 p-3 font-mono text-xs text-indigo-300">
+              http://localhost:8080
+            </div>
+            <p className="text-slate-400">
+              Sign in with the seeded admin user, create a project and application, then open the project details page to copy the app UUID for CI/CD authentication or external automation.
+            </p>
+          </div>
+
+          <div className="space-y-3 text-sm text-slate-300">
+            <p className="font-semibold text-white">Recommended workflow</p>
+            <ul className="list-disc list-inside space-y-1.5 text-slate-400 pl-2">
+              <li>Create app and channel setup.</li>
+              <li>Create a token with the least privileges needed.</li>
+              <li>Upload APK through the UI or API.</li>
+              <li>Approve, publish, or promote the release.</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}

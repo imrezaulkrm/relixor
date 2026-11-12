@@ -2,12 +2,17 @@ import { createApp } from './app';
 import { config } from './config';
 import { logger } from './utils/logger';
 import { prisma } from './services/prisma';
+import { startRetentionScheduler } from './services/retentionService';
 
 const app = createApp();
 
 const server = app.listen(config.port, () => {
   logger.info(`🚀 Relixor Backend API running on port ${config.port} [${config.env}]`);
   logger.info(`Health check available at http://localhost:${config.port}/health`);
+
+  if (config.retention.scheduleEnabled) {
+    startRetentionScheduler(config.retention.intervalMinutes, config.retention.allowDelete);
+  }
 });
 
 const gracefulShutdown = async (signal: string) => {

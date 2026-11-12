@@ -57,6 +57,37 @@ export async function apiRequest<T>(
   return (data?.data ?? data) as T;
 }
 
+export async function apiRequestWithMeta<T>(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<{ data: T; meta?: Record<string, number> }> {
+  const url = `${API_BASE}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  const headers = {
+    ...getAuthHeader(),
+    ...(options.headers || {}),
+  } as Record<string, string>;
+  if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+    headers['Content-Type'] = 'application/json';
+  }
+
+  const response = await fetch(url, { ...options, headers });
+  if (response.status === 401 && !window.location.pathname.includes('/login')) {
+    localStorage.removeItem('relixor_auth_token');
+    localStorage.removeItem('relixor_user');
+    window.location.href = '/login';
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new ApiError(
+      payload?.error?.message || `Request failed with status ${response.status}`,
+      payload?.error?.code
+    );
+  }
+
+  return { data: (payload?.data ?? payload) as T, meta: payload?.meta };
+}
+
 export async function downloadFile(url: string, filename: string): Promise<void> {
   const token = localStorage.getItem('relixor_auth_token');
   let targetUrl = url;

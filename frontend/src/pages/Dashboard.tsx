@@ -12,21 +12,40 @@ import {
   ArrowUpRight,
   TrendingUp,
   Activity,
+  ClipboardCheck,
+  ShieldAlert,
+  Rocket,
 } from 'lucide-react';
+
+interface RoleOverview {
+  totals: { pendingApprovals: number; users: number | null; downloads: number; releases: number };
+  pendingQaVerifications: number;
+  qaReleases: Array<{ id: string; version: string; channel: string; app: { id: string; name: string } }>;
+  recentPublications: Array<{ id: string; version: string; publishedAt: string; app: { id: string; name: string } }>;
+  securityEvents: Array<{ id: string; action: string; createdAt: string; user?: { name: string } | null }>;
+  assignedProjects: Array<{ id: string; name: string; _count?: { apps: number } }>;
+}
 
 interface Props {
   onNavigateToApp: (appId: string) => void;
-  onNavigateTab: (tab: 'apps' | 'tokens' | 'docs' | 'audit') => void;
+  onNavigateTab: (tab: 'apps' | 'tokens' | 'docs' | 'audit' | 'releases' | 'qa') => void;
 }
 
 export const Dashboard: React.FC<Props> = ({ onNavigateToApp, onNavigateTab }) => {
   const { user } = useAuth();
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [overview, setOverview] = useState<RoleOverview | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiRequest<DashboardStats>('/stats/dashboard')
-      .then((data) => setStats(data))
+    Promise.all([
+      apiRequest<DashboardStats>('/stats/dashboard'),
+      apiRequest<RoleOverview>('/stats/overview'),
+    ])
+      .then(([dashboard, roleOverview]) => {
+        setStats(dashboard);
+        setOverview(roleOverview);
+      })
       .catch((err) => console.error(err))
       .finally(() => setLoading(false));
   }, []);
@@ -159,6 +178,80 @@ export const Dashboard: React.FC<Props> = ({ onNavigateToApp, onNavigateTab }) =
           </div>
         </div>
       </div>
+
+      {/* Role-specific operational overview */}
+      {overview && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2">
+                <ClipboardCheck className="w-4 h-4 text-amber-400" /> Approvals & QA queue
+              </h2>
+              <button onClick={() => onNavigateTab('releases')} className="text-[11px] text-indigo-400 hover:text-indigo-300">
+                Open releases
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500">Pending approval</div>
+                <div className="text-2xl font-bold text-amber-300">{overview.totals.pendingApprovals}</div>
+              </div>
+              <div className="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                <div className="text-[10px] uppercase tracking-wider text-slate-500">QA pending</div>
+                <div className="text-2xl font-bold text-sky-300">{overview.pendingQaVerifications}</div>
+              </div>
+            </div>
+            {overview.qaReleases.length === 0 ? (
+              <p className="text-xs text-slate-500">No QA-approved releases awaiting distribution.</p>
+            ) : (
+              overview.qaReleases.slice(0, 3).map((release) => (
+                <div key={release.id} className="flex items-center justify-between text-xs py-1.5 border-t border-slate-800/60">
+                  <span className="text-slate-300">{release.app.name}</span>
+                  <span className="font-mono text-slate-500">v{release.version}</span>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2 mb-3">
+              <Rocket className="w-4 h-4 text-emerald-400" /> Recent publications
+            </h2>
+            {overview.recentPublications.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4 text-center">No production publications yet.</p>
+            ) : (
+              overview.recentPublications.slice(0, 4).map((release) => (
+                <div key={release.id} className="flex items-center justify-between text-xs py-2 border-b border-slate-800/60">
+                  <div>
+                    <div className="text-slate-200">{release.app.name}</div>
+                    <div className="text-[10px] text-slate-500 font-mono">v{release.version}</div>
+                  </div>
+                  <span className="text-slate-500 text-[10px]">{formatDate(release.publishedAt)}</span>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+            <h2 className="text-sm font-bold text-slate-200 flex items-center gap-2 mb-3">
+              <ShieldAlert className="w-4 h-4 text-rose-400" /> Security activity
+            </h2>
+            {overview.securityEvents.length === 0 ? (
+              <p className="text-xs text-slate-500 py-4 text-center">No security events visible for your role.</p>
+            ) : (
+              overview.securityEvents.slice(0, 4).map((event) => (
+                <div key={event.id} className="text-xs py-2 border-b border-slate-800/60">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300 font-mono">{event.action}</span>
+                    <span className="text-slate-500 text-[10px]">{formatDate(event.createdAt)}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500">{event.user?.name || 'System'}</div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Two Columns: Recent Releases & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

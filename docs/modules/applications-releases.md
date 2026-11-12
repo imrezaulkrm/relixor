@@ -16,6 +16,8 @@ Authenticated clients call `/api/v1/apps` and `/api/v1/apps/:appId/releases`. Up
 
 Preserve app/release containment, path-safe version/storage inputs, APK header and size checks, role/token permission checks, and immutable duplicate identity. Do not infer Android correctness beyond the implemented header validation.
 
+Module 02 adds resource-level checks on top of the global roles: app details/update, release list/detail/upload/delete/download, and project app creation now require an effective `VIEWER` or `DEVELOPER` role from a direct app membership or the parent project membership. Release access is always authorized through its parent app, never by release ID or storage key alone. See [projects-rbac.md](projects-rbac.md).
+
 ## Tests and evidence
 
 - **Status:** **VERIFIED**
@@ -34,3 +36,21 @@ Preserve app/release containment, path-safe version/storage inputs, APK header a
 ## Acceptance and maintenance
 
 Acceptance criteria fully met with recorded test runs in [docs/UAT_REPORT.md](../UAT_REPORT.md). Update this document when endpoints, release identity, validation, or frontend release flows change.
+
+## Module 03 release lifecycle (2026-11-12)
+
+`releaseService.ts` defines the lifecycle metadata, status-history writer, version comparison, current-production lookup, and self-approval policy. `release.routes.ts` now exposes:
+
+- `GET /apps/:appId/releases/current`, `/compare`
+- `POST /apps/:appId/releases/rollback`
+- `POST /apps/:appId/releases/:releaseId/{submit,approve,reject,publish,deprecate,promote}`
+- `PUT /apps/:appId/releases/:releaseId`
+- `GET|POST /apps/:appId/releases/:releaseId/qa-verifications`, `GET .../qa-summary`
+- `GET /apps/:appId/releases/:releaseId/download-ticket`
+- scoped global catalog `GET /releases`
+
+Publication requires `APPROVED`; publishing a PRODUCTION release deprecates the previous one. Uploads never publish implicitly. A developer cannot approve their own upload unless `ALLOW_SELF_APPROVAL=true`; administrators are allowed. Promotion to PRODUCTION resets approval. Production releases, pinned releases and releases in active workflow states are protected from deletion/cleanup. Rejection requires a reason. App publication requires ADMIN (`isPublic`, `publicSlug`).
+
+Downloads are authorized through the parent application. Short-lived download tickets are single-use and stored in `download_tickets`; JWT/API-token query authentication is no longer accepted. QR codes now use tickets and are only issued for publicly downloadable releases.
+
+Evidence: `backend/tests/releaseLifecycle.test.ts` (18), `ciIntegration.test.ts` (5), `publicPortal.test.ts` (13), `qaReports.test.ts` (9), `retention.test.ts` (9), plus the full suite (155/155). See [ANDROID_UPDATE_API.md](../ANDROID_UPDATE_API.md) and [ci-cd-gitlab.md](ci-cd-gitlab.md).

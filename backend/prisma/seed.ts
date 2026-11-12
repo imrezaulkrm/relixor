@@ -164,18 +164,67 @@ async function main() {
     console.log(`✅ Created Demo Viewer user: ${viewerEmail} (password: ViewerPassword123!)`);
   }
 
-  // 4. Ensure Demo Application
+  // 4. Ensure Default Project and Demo Application
+  let defaultProject = await prisma.project.findUnique({ where: { slug: 'default-project' } });
+  if (!defaultProject) {
+    defaultProject = await prisma.project.create({
+      data: {
+        id: 'default-project-0000-0000-000000000000',
+        name: 'Default Project',
+        slug: 'default-project',
+        description: 'System default project containing existing applications',
+      },
+    });
+    console.log(`✅ Created Default Project: ${defaultProject.name}`);
+  }
+
   const packageName = 'com.relixor.pos';
   let demoApp = await prisma.app.findUnique({ where: { packageName } });
   if (!demoApp) {
     demoApp = await prisma.app.create({
       data: {
+        projectId: defaultProject.id,
         name: 'Relixor POS Terminal',
         packageName,
         description: 'Next-generation Android Point of Sale client with real-time sync and offline payment processing.',
       },
     });
     console.log(`✅ Created Demo App: ${demoApp.name} (${demoApp.packageName})`);
+  }
+
+  for (const member of [
+    { userId: devUser.id, role: 'DEVELOPER' as const },
+    { userId: viewerUser.id, role: 'VIEWER' as const },
+  ]) {
+    await prisma.projectMembership.upsert({
+      where: {
+        project_user_unique: {
+          projectId: defaultProject.id,
+          userId: member.userId,
+        },
+      },
+      update: { role: member.role },
+      create: {
+        projectId: defaultProject.id,
+        userId: member.userId,
+        role: member.role,
+      },
+    });
+
+    await prisma.appMembership.upsert({
+      where: {
+        app_user_unique: {
+          appId: demoApp.id,
+          userId: member.userId,
+        },
+      },
+      update: { role: member.role },
+      create: {
+        appId: demoApp.id,
+        userId: member.userId,
+        role: member.role,
+      },
+    });
   }
 
   // 5. Seed sample releases with real stored APK files

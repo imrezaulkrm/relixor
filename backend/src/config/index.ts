@@ -37,6 +37,15 @@ export const config = {
     .map((origin) => origin.trim())
     .filter(Boolean),
   
+  allowSelfApproval: (process.env.ALLOW_SELF_APPROVAL || 'false').toLowerCase() === 'true',
+
+  // APK retention is dry-run by default. Real deletion requires an explicit deployment decision.
+  retention: {
+    allowDelete: (process.env.RETENTION_ALLOW_DELETE || 'false').toLowerCase() === 'true',
+    scheduleEnabled: (process.env.RETENTION_SCHEDULE_ENABLED || 'false').toLowerCase() === 'true',
+    intervalMinutes: Math.max(60, parseInt(process.env.RETENTION_INTERVAL_MINUTES || '1440', 10) || 1440),
+  },
+
   storage: {
     provider: (process.env.STORAGE_PROVIDER || 'local').toLowerCase(),
     localDir: path.resolve(process.env.STORAGE_LOCAL_DIR || path.join(process.cwd(), '../storage/apks')),

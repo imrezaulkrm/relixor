@@ -1,10 +1,21 @@
 import React from 'react';
 import { useAuth } from '../context/AuthContext';
+import { apiRequest } from '../api/client';
 import { RoleBadge } from './RoleBadge';
 import { LogOut, Box, User as UserIcon } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await apiRequest('/auth/logout', { method: 'POST' });
+    } catch {
+      // Local sign-out still proceeds if the session is already invalid.
+    } finally {
+      logout();
+    }
+  };
 
   return (
     <header className="h-16 border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-40 px-6 flex items-center justify-between">
@@ -35,7 +46,7 @@ export const Navbar: React.FC = () => {
               <UserIcon className="w-4 h-4" />
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               title="Sign Out"
               className="p-2 text-slate-400 hover:text-rose-400 hover:bg-slate-800/80 rounded-lg transition-colors ml-1"
             >

@@ -1,7 +1,8 @@
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { X, Copy, Check, Smartphone } from 'lucide-react';
+import { X, Copy, Check, Smartphone, AlertCircle } from 'lucide-react';
 import { Release, AppItem } from '../types';
+import { apiRequest, ApiError } from '../api/client';
 
 interface Props {
   isOpen: boolean;
@@ -12,14 +13,48 @@ interface Props {
 
 export const QrCodeModal: React.FC<Props> = ({ isOpen, onClose, app, release }) => {
   const [copied, setCopied] = React.useState(false);
+  const [downloadUrl, setDownloadUrl] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+  const [expiresIn, setExpiresIn] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    const loadTicket = async () => {
+      setLoading(true);
+      setError(null);
+      setDownloadUrl(null);
+      try {
+        const ticket = await apiRequest<{ downloadPath: string; expiresInSeconds: number }>(
+          `/apps/${app.id}/releases/${release.id}/download-ticket`
+        );
+        if (cancelled) return;
+        setDownloadUrl(`${window.location.origin}${ticket.downloadPath}`);
+        setExpiresIn(ticket.expiresInSeconds);
+      } catch (err) {
+        if (cancelled) return;
+        setError(
+          err instanceof ApiError
+            ? err.message
+            : 'Could not create a secure download link for this release.'
+        );
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadTicket();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, app.id, release.id]);
 
   if (!isOpen) return null;
 
-  const authToken = localStorage.getItem('relixor_auth_token') || '';
-  // Provide download link with authentication token query param
-  const downloadUrl = `${window.location.origin}/api/v1/apps/${app.id}/releases/${release.id}/download?token=${encodeURIComponent(authToken)}`;
-
   const handleCopy = () => {
+    if (!downloadUrl) return;
     navigator.clipboard.writeText(downloadUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -45,23 +80,41 @@ export const QrCodeModal: React.FC<Props> = ({ isOpen, onClose, app, release }) 
           <strong className="text-slate-200">{app.name}</strong> v{release.version}.
         </p>
 
-        <div className="inline-block p-4 bg-white rounded-xl shadow-inner mb-6">
-          <QRCodeSVG value={downloadUrl} size={200} level="M" />
-        </div>
-
-        <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 flex items-center justify-between text-left mb-6">
-          <div className="truncate pr-2">
-            <p className="text-xs text-slate-500 font-mono">Authenticated Download Link</p>
-            <p className="text-xs text-slate-300 font-mono truncate">{downloadUrl}</p>
+        {loading ? (
+          <div className="py-16 text-sm text-slate-400 flex items-center justify-center gap-3">
+            <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+            Creating secure download link...
           </div>
-          <button
-            onClick={handleCopy}
-            className="flex-shrink-0 p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
-            title="Copy URL"
-          >
-            {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-          </button>
-        </div>
+        ) : error ? (
+          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-left">
+            <div className="flex items-start gap-2 text-amber-300 text-xs leading-relaxed">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>{error}</span>
+            </div>
+          </div>
+        ) : downloadUrl ? (
+          <>
+            <div className="inline-block p-4 bg-white rounded-xl shadow-inner mb-4">
+              <QRCodeSVG value={downloadUrl} size={200} level="M" />
+            </div>
+            <p className="text-[11px] text-amber-300 mb-4">
+              Link expires in {Math.round(expiresIn / 60)} minutes and can be used once.
+            </p>
+            <div className="bg-slate-950/70 border border-slate-800 rounded-xl p-3 flex items-center justify-between text-left mb-6">
+              <div className="truncate pr-2">
+                <p className="text-xs text-slate-500 font-mono">Single-use download link</p>
+                <p className="text-xs text-slate-300 font-mono truncate">{downloadUrl}</p>
+              </div>
+              <button
+                onClick={handleCopy}
+                className="flex-shrink-0 p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                title="Copy URL"
+              >
+                {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+              </button>
+            </div>
+          </>
+        ) : null}
 
         <div className="flex justify-end gap-3">
           <button

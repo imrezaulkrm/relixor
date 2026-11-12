@@ -10,6 +10,8 @@ interface JwtPayload {
   email: string;
   role: string;
   name: string;
+  tokenVersion?: number;
+  sid?: string;
 }
 
 export async function authenticate(req: Request, res: Response, next: NextFunction): Promise<void> {
@@ -21,9 +23,10 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
       tokenString = authHeader.substring(7).trim();
     } else if (req.headers['x-api-key']) {
       tokenString = (req.headers['x-api-key'] as string).trim();
-    } else if (req.query.token && typeof req.query.token === 'string') {
-      tokenString = req.query.token.trim();
     }
+    // Query-string credentials are intentionally NOT accepted: JWTs and API tokens
+    // must not leak through URLs, logs, referrers or QR codes. Use the short-lived
+    // single-use download ticket endpoint instead.
 
     if (!tokenString) {
       res.status(401).json({
@@ -99,7 +102,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
-        select: { id: true, email: true, name: true, role: true, isActive: true },
+        select: { id: true, email: true, name: true, role: true, isActive: true, tokenVersion: true },
       });
 
       if (!user || !user.isActive) {
@@ -108,6 +111,35 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
           error: { message: 'User account is invalid or deactivated.', code: 'USER_INACTIVE' },
         });
         return;
+      }
+
+      // tokenVersion invalidation lets password changes and deactivation revoke all sessions.
+      if (decoded.tokenVersion !== undefined && decoded.tokenVersion !== user.tokenVersion) {
+        res.status(401).json({
+          success: false,
+          error: { message: 'Session has been revoked. Please sign in again.', code: 'SESSION_REVOKED' },
+        });
+        return;
+      }
+
+      if (decoded.sid) {
+        const session = await prisma.userSession.findUnique({ where: { id: decoded.sid } });
+        if (
+          !session ||
+          session.userId !== user.id ||
+          session.revokedAt !== null ||
+          session.expiresAt.getTime() <= Date.now()
+        ) {
+          res.status(401).json({
+            success: false,
+            error: { message: 'Session has been revoked or expired. Please sign in again.', code: 'SESSION_REVOKED' },
+          });
+          return;
+        }
+        prisma.userSession
+          .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
+          .catch(() => {});
+        req.sessionId = session.id;
       }
 
       req.user = {

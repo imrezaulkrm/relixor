@@ -5,8 +5,16 @@ import rateLimit from 'express-rate-limit';
 import { config } from './config';
 import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth.routes';
+import projectRoutes from './routes/project.routes';
 import appRoutes from './routes/app.routes';
 import releaseRoutes from './routes/release.routes';
+import releasesRoutes from './routes/releases.routes';
+import updateRoutes from './routes/update.routes';
+import publicRoutes from './routes/public.routes';
+import downloadsRoutes from './routes/downloads.routes';
+import reportsRoutes from './routes/reports.routes';
+import retentionRoutes from './routes/retention.routes';
+import profileRoutes from './routes/profile.routes';
 import userRoutes from './routes/user.routes';
 import tokenRoutes from './routes/token.routes';
 import statsRoutes from './routes/stats.routes';
@@ -71,6 +79,20 @@ export function createApp(): Express {
     },
   });
   app.use('/api/v1/auth/login', authLimiter);
+  app.use('/api/v1/auth/password-reset', authLimiter);
+
+  // Download limiter: ticket redemption is unauthenticated and must be throttled.
+  const downloadLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: {
+      success: false,
+      error: { message: 'Too many download attempts, please try again later.', code: 'DOWNLOAD_RATE_LIMIT' },
+    },
+  });
+  app.use('/api/v1/downloads', downloadLimiter);
 
   // Root health endpoints
   app.use('/health', healthRoutes);
@@ -78,9 +100,17 @@ export function createApp(): Express {
 
   // API v1 Routes
   app.use('/api/v1/auth', authRoutes);
-  app.use('/api/v1/apps', appRoutes);
+  app.use('/api/v1/projects', projectRoutes);
+  app.use('/api/v1/apps/:appId/updates', updateRoutes);
   app.use('/api/v1/apps/:appId/releases', releaseRoutes);
+  app.use('/api/v1/apps', appRoutes);
+  app.use('/api/v1/releases', releasesRoutes);
+  app.use('/api/v1/public', publicRoutes);
+  app.use('/api/v1/downloads', downloadsRoutes);
+  app.use('/api/v1/reports', reportsRoutes);
+  app.use('/api/v1/retention', retentionRoutes);
   app.use('/api/v1/users', userRoutes);
+  app.use('/api/v1/profile', profileRoutes);
   app.use('/api/v1/tokens', tokenRoutes);
   app.use('/api/v1/stats', statsRoutes);
   app.use('/api/v1/audit-logs', auditRoutes);

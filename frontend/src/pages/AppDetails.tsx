@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { apiRequest, ApiError, downloadFile } from '../api/client';
-import { AppItem, Release, ReleaseChannel } from '../types';
+import { AppItem, Release, ReleaseChannel, AppMember, MembershipRole, User } from '../types';
 import { useAuth } from '../context/AuthContext';
 import { formatBytes, formatDate } from '../utils/format';
 import { ChannelBadge } from '../components/ChannelBadge';
@@ -19,6 +19,10 @@ import {
   FileCheck2,
   AlertCircle,
   FileUp,
+  Search,
+  Users as UsersIcon,
+  UserCheck,
+  ShieldCheck,
 } from 'lucide-react';
 
 interface Props {
@@ -28,13 +32,28 @@ interface Props {
 
 export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
   const { user } = useAuth();
-  const canUpload = user?.role === 'ADMIN' || user?.role === 'DEVELOPER';
   const isAdmin = user?.role === 'ADMIN';
 
   const [app, setApp] = useState<AppItem | null>(null);
+  // Effective resource role drives write affordances; it may be VIEWER even when the
+  // global role is DEVELOPER (or DEVELOPER when a project-level assignment grants it).
+  const canUpload = isAdmin || app?.effectiveRole === 'DEVELOPER';
   const [releases, setReleases] = useState<Release[]>([]);
   const [selectedChannel, setSelectedChannel] = useState<ReleaseChannel | 'ALL'>('ALL');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'releases' | 'members'>('releases');
+
+  // App Members State
+  const [members, setMembers] = useState<AppMember[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [loadingMembers, setLoadingMembers] = useState(false);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [selectedRole, setSelectedRole] = useState<MembershipRole>('DEVELOPER');
+  const [memberError, setMemberError] = useState<string | null>(null);
+  const [submittingMember, setSubmittingMember] = useState(false);
+  const [removingMember, setRemovingMember] = useState<AppMember | null>(null);
 
   // QR Code Modal State
   const [qrRelease, setQrRelease] = useState<Release | null>(null);
@@ -57,6 +76,8 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editName, setEditName] = useState('');
   const [editDesc, setEditDesc] = useState('');
+  const [editPublic, setEditPublic] = useState(false);
+  const [editSlug, setEditSlug] = useState('');
 
   const fetchAppData = async () => {
     try {
@@ -65,6 +86,8 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
       setApp(appData);
       setEditName(appData.name);
       setEditDesc(appData.description || '');
+      setEditPublic(Boolean(appData.isPublic));
+      setEditSlug(appData.publicSlug || '');
 
       const channelParam = selectedChannel !== 'ALL' ? `?channel=${selectedChannel}` : '';
       const releasesData = await apiRequest<Release[]>(`/apps/${appId}/releases${channelParam}`);
@@ -76,9 +99,86 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
     }
   };
 
+  const fetchMembers = async () => {
+    if (!isAdmin) return;
+    try {
+      setLoadingMembers(true);
+      const [membersData, usersData] = await Promise.all([
+        apiRequest<AppMember[]>(`/apps/${appId}/members`),
+        apiRequest<User[]>('/users'),
+      ]);
+      setMembers(membersData);
+      setAllUsers(usersData.filter((u) => u.isActive && u.role !== 'ADMIN'));
+    } catch (err) {
+      console.error('Failed to load application members', err);
+    } finally {
+      setLoadingMembers(false);
+    }
+  };
+
   useEffect(() => {
     fetchAppData();
   }, [appId, selectedChannel]);
+
+  useEffect(() => {
+    if (activeTab === 'members' && isAdmin) {
+      fetchMembers();
+    }
+  }, [activeTab, appId, isAdmin]);
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMemberError(null);
+    setSubmittingMember(true);
+
+    try {
+      await apiRequest(`/apps/${appId}/members`, {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: selectedUserId,
+          role: selectedRole,
+        }),
+      });
+
+      setIsAddMemberOpen(false);
+      setSelectedUserId('');
+      setSelectedRole('DEVELOPER');
+      fetchMembers();
+    } catch (err: unknown) {
+      if (err instanceof ApiError) {
+        setMemberError(err.message);
+      } else {
+        setMemberError('Failed to assign member');
+      }
+    } finally {
+      setSubmittingMember(false);
+    }
+  };
+
+  const handleUpdateMemberRole = async (targetUserId: string, newRole: MembershipRole) => {
+    try {
+      await apiRequest(`/apps/${appId}/members/${targetUserId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ role: newRole }),
+      });
+      fetchMembers();
+    } catch (err) {
+      console.error('Failed to update member role', err);
+    }
+  };
+
+  const handleRemoveMember = async () => {
+    if (!removingMember) return;
+    try {
+      await apiRequest(`/apps/${appId}/members/${removingMember.userId}`, {
+        method: 'DELETE',
+      });
+      setRemovingMember(null);
+      fetchMembers();
+    } catch (err) {
+      console.error('Failed to remove member', err);
+    }
+  };
 
   const handleCopySha = (sha: string, id: string) => {
     navigator.clipboard.writeText(sha);
@@ -137,7 +237,13 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
     try {
       const updated = await apiRequest<AppItem>(`/apps/${appId}`, {
         method: 'PUT',
-        body: JSON.stringify({ name: editName, description: editDesc }),
+        body: JSON.stringify({
+          name: editName,
+          description: editDesc,
+          ...(isAdmin
+            ? { isPublic: editPublic, publicSlug: editSlug.trim() ? editSlug.trim() : null }
+            : {}),
+        }),
       });
       setApp(updated);
       setIsEditOpen(false);
@@ -194,6 +300,12 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
       </div>
     );
   }
+
+  const filteredMembers = members.filter(
+    (m) =>
+      m.user.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
+      m.user.email.toLowerCase().includes(memberSearch.toLowerCase())
+  );
 
   if (!app) return null;
 
@@ -280,6 +392,35 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
         </div>
       </div>
 
+      {/* Section Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-4">
+        <button
+          onClick={() => setActiveTab('releases')}
+          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'releases'
+              ? 'bg-slate-100 text-slate-900 shadow'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+          }`}
+        >
+          Releases ({releases.length})
+        </button>
+        {isAdmin && (
+          <button
+            onClick={() => setActiveTab('members')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 ${
+              activeTab === 'members'
+                ? 'bg-slate-100 text-slate-900 shadow'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+            }`}
+          >
+            <UsersIcon className="w-3.5 h-3.5" />
+            App Members ({members.length})
+          </button>
+        )}
+      </div>
+
+      {activeTab === 'releases' ? (
+        <>
       {/* Release Channel Tabs */}
       <div className="flex items-center justify-between border-b border-slate-800 pb-4">
         <div className="flex items-center gap-2 overflow-x-auto">
@@ -416,6 +557,199 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+        </>
+      ) : (
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Filter members..."
+                value={memberSearch}
+                onChange={(e) => setMemberSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <button
+              onClick={() => {
+                setMemberError(null);
+                setIsAddMemberOpen(true);
+              }}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold rounded-xl transition-colors flex items-center gap-2 self-start sm:self-auto"
+            >
+              <UserCheck className="w-4 h-4" />
+              Assign Member
+            </button>
+          </div>
+
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+            {loadingMembers ? (
+              <div className="p-8 text-center text-xs text-slate-400">Loading application members...</div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="p-10 text-center">
+                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h3 className="text-base font-bold text-slate-100 mb-1">
+                  {members.length === 0 ? 'No Direct App Members' : 'No Matching Members'}
+                </h3>
+                <p className="text-sm text-slate-400">
+                  {members.length === 0
+                    ? 'Users inherit access from the parent project unless assigned directly here.'
+                    : 'No members match your search.'}
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950/60 text-slate-400 border-b border-slate-800 uppercase tracking-wider font-semibold">
+                    <tr>
+                      <th className="py-3 px-4">User</th>
+                      <th className="py-3 px-4">App Role</th>
+                      <th className="py-3 px-4">Assigned</th>
+                      <th className="py-3 px-4">Assigned By</th>
+                      <th className="py-3 px-4 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {filteredMembers.map((member) => (
+                      <tr key={member.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="py-3 px-4">
+                          <div className="font-semibold text-slate-100">{member.user.name}</div>
+                          <div className="text-[11px] font-mono text-slate-400 mt-0.5">{member.user.email}</div>
+                        </td>
+                        <td className="py-3 px-4">
+                          <select
+                            value={member.role}
+                            onChange={(e) => handleUpdateMemberRole(member.userId, e.target.value as MembershipRole)}
+                            className="bg-slate-950 border border-slate-800 rounded-lg text-[11px] font-semibold text-slate-200 px-2 py-1 focus:outline-none focus:border-indigo-500"
+                          >
+                            <option value="DEVELOPER">DEVELOPER</option>
+                            <option value="VIEWER">VIEWER</option>
+                          </select>
+                        </td>
+                        <td className="py-3 px-4 text-slate-400">{formatDate(member.createdAt)}</td>
+                        <td className="py-3 px-4 text-slate-400">{member.createdBy?.name || '—'}</td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => setRemovingMember(member)}
+                            className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-slate-800 rounded-lg transition-colors"
+                            title="Remove App Membership"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Assign App Member Modal */}
+      {isAddMemberOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+            <button
+              onClick={() => setIsAddMemberOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-100 transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <h3 className="text-xl font-bold text-white mb-1">Assign App Member</h3>
+            <p className="text-sm text-slate-400 mb-6">Grant direct access to {app.name}.</p>
+
+            {memberError && (
+              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2 text-rose-400 text-xs">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{memberError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAddMember} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">User *</label>
+                <select
+                  required
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Select a user...</option>
+                  {allUsers
+                    .filter((u) => !members.some((m) => m.userId === u.id))
+                    .map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} ({u.email})
+                      </option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">App Role *</label>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as MembershipRole)}
+                  className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="DEVELOPER">DEVELOPER — Upload releases and manage app content</option>
+                  <option value="VIEWER">VIEWER — Read-only access</option>
+                </select>
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                  A direct app role overrides the parent project role, whether it is more or less restrictive.
+                </p>
+              </div>
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsAddMemberOpen(false)}
+                  className="px-4 py-2 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-xl transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingMember || !selectedUserId}
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-medium rounded-xl transition-colors"
+                >
+                  {submittingMember ? 'Assigning...' : 'Assign Member'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Remove App Member Confirmation */}
+      {removingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl relative">
+            <h3 className="text-lg font-bold text-white mb-2">Remove App Membership</h3>
+            <p className="text-sm text-slate-300 leading-relaxed mb-6">
+              Remove <strong className="text-white">{removingMember.user.name}</strong> from{' '}
+              <strong className="text-white">{app.name}</strong>? They may still inherit access from the parent project.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setRemovingMember(null)}
+                className="px-4 py-2 border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-medium rounded-xl transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRemoveMember}
+                className="px-5 py-2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-medium rounded-xl transition-colors"
+              >
+                Remove Member
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -613,6 +947,36 @@ export const AppDetails: React.FC<Props> = ({ appId, onBack }) => {
                   className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 text-sm focus:outline-none focus:border-indigo-500 resize-none"
                 />
               </div>
+
+              {isAdmin && (
+                <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-3">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={editPublic}
+                      onChange={(event) => setEditPublic(event.target.checked)}
+                      className="accent-indigo-500"
+                    />
+                    Publish in public APK portal
+                  </label>
+                  <div>
+                    <label className="block text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                      Public slug
+                    </label>
+                    <input
+                      type="text"
+                      value={editSlug}
+                      onChange={(event) => setEditSlug(event.target.value)}
+                      placeholder="my-app (lowercase, hyphens)"
+                      disabled={!editPublic}
+                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-100 disabled:opacity-50"
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Only PRODUCTION + PUBLISHED releases are exposed. Internal channels remain private.
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <div className="flex justify-end gap-3 pt-3">
                 <button

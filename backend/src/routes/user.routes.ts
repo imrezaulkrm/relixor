@@ -1,5 +1,15 @@
 import { Router } from 'express';
-import { listUsers, createUser, updateUser, deleteUser } from '../controllers/user.controller';
+import {
+  listUsers,
+  createUser,
+  updateUser,
+  deleteUser,
+  listUserSessions,
+  revokeUserSessions,
+  listUserActivity,
+  issuePasswordReset,
+} from '../controllers/user.controller';
+import { getUserAccessOverview } from '../controllers/membership.controller';
 import { authenticate } from '../middleware/auth';
 import { requireRole } from '../middleware/rbac';
 import { Role } from '@prisma/client';
@@ -20,6 +30,11 @@ router.use((req, res, next) => {
 });
 
 router.get('/', listUsers);
+router.get('/:userId/access', getUserAccessOverview);
+router.get('/:userId/sessions', listUserSessions);
+router.delete('/:userId/sessions', revokeUserSessions);
+router.get('/:userId/activity', listUserActivity);
+router.post('/:userId/password-reset', issuePasswordReset);
 router.post('/', createUser);
 router.put('/:userId', updateUser);
 router.delete('/:userId', deleteUser);

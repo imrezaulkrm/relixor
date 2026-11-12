@@ -1,0 +1,75 @@
+# Example GitLab CI pipeline for Relixor.
+# Copy the relevant jobs into your project's .gitlab-ci.yml.
+#
+# Required protected CI/CD variables (Settings > CI/CD > Variables):
+#   RELIXOR_URL          e.g. https://relixor.example.com
+#   RELIXOR_APP_ID       application UUID from the Relixor UI
+#   RELIXOR_API_TOKEN    scoped WRITE API token (masked, protected)
+#
+# Never commit tokens. The token is sent in the X-API-Key header, not the URL.
+
+stages:
+  - build
+  - upload-dev
+  - upload-qa
+
+variables:
+  ANDROID_VERSION_NAME: "1.0.0"
+  ANDROID_VERSION_CODE: "100"
+
+build:apk:
+  stage: build
+  script:
+    - ./gradlew assembleRelease
+    - echo "APK_SHA256=$(sha256sum app/build/outputs/apk/release/app-release.apk | cut -d' ' -f1)" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+    paths:
+      - app/build/outputs/apk/release/app-release.apk
+
+upload:dev:
+  stage: upload-dev
+  needs: ["build:apk"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+  script:
+    - |
+      curl --fail-with-body --silent --show-error \
+        --request POST \
+        --header "X-API-Key: ${RELIXOR_API_TOKEN}" \
+        --form "file=@app/build/outputs/apk/release/app-release.apk" \
+        --form "version=${ANDROID_VERSION_NAME}" \
+        --form "versionCode=${ANDROID_VERSION_CODE}" \
+        --form "channel=DEV" \
+        --form "notes=Automated DEV build ${CI_COMMIT_SHORT_SHA}" \
+        --form "sha256=${APK_SHA256}" \
+        --form "gitCommitSha=${CI_COMMIT_SHA}" \
+        --form "gitBranch=${CI_COMMIT_REF_NAME}" \
+        --form "gitlabPipelineId=${CI_PIPELINE_ID}" \
+        --form "gitlabPipelineUrl=${CI_PIPELINE_URL}" \
+        --form "buildTimestamp=${CI_JOB_STARTED_AT}" \
+        "${RELIXOR_URL}/api/v1/apps/${RELIXOR_APP_ID}/releases"
+
+upload:qa:
+  stage: upload-qa
+  needs: ["build:apk"]
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - |
+      curl --fail-with-body --silent --show-error \
+        --request POST \
+        --header "X-API-Key: ${RELIXOR_API_TOKEN}" \
+        --form "file=@app/build/outputs/apk/release/app-release.apk" \
+        --form "version=${ANDROID_VERSION_NAME}" \
+        --form "versionCode=${ANDROID_VERSION_CODE}" \
+        --form "channel=QA" \
+        --form "notes=Automated QA build ${CI_COMMIT_SHORT_SHA}" \
+        --form "sha256=${APK_SHA256}" \
+        --form "gitCommitSha=${CI_COMMIT_SHA}" \
+        --form "gitBranch=${CI_COMMIT_REF_NAME}" \
+        --form "gitlabPipelineId=${CI_PIPELINE_ID}" \
+        --form "gitlabPipelineUrl=${CI_PIPELINE_URL}" \
+        --form "buildTimestamp=${CI_JOB_STARTED_AT}" \
+        "${RELIXOR_URL}/api/v1/apps/${RELIXOR_APP_ID}/releases"

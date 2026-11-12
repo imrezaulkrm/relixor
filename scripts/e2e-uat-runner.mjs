@@ -3,12 +3,21 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 
-const BASE_URL = 'http://localhost:8080';
+const BASE_URL = process.env.RELIXOR_BASE_URL || 'http://localhost:32769';
 const API_URL = `${BASE_URL}/api/v1`;
 
-const ADMIN_CREDS = { email: 'admin@relixor.internal', password: 'RelixorLocalAdmin2026!' };
-const DEV_CREDS = { email: 'dev@relixor.internal', password: 'DevPassword123!' };
-const VIEWER_CREDS = { email: 'viewer@relixor.internal', password: 'ViewerPassword123!' };
+const ADMIN_CREDS = {
+  email: process.env.ADMIN_DEFAULT_EMAIL || 'admin@relixor.internal',
+  password: process.env.ADMIN_DEFAULT_PASSWORD || 'AdminPassword123!',
+};
+const DEV_CREDS = {
+  email: process.env.DEV_DEFAULT_EMAIL || 'dev@relixor.internal',
+  password: process.env.DEV_DEFAULT_PASSWORD || 'DevPassword123!',
+};
+const VIEWER_CREDS = {
+  email: process.env.VIEWER_DEFAULT_EMAIL || 'viewer@relixor.internal',
+  password: process.env.VIEWER_DEFAULT_PASSWORD || 'ViewerPassword123!',
+};
 
 // Minimal valid zip/APK buffer
 function createTestApkBuffer(appName = 'E2EApp', version = '1.0.0') {

@@ -12,14 +12,15 @@ Nginx serves the frontend and proxies `/api/*` and `/health` to the Express API.
 | Auth/security | `backend/src/middleware/auth.ts`, `rbac.ts`, `routes/auth.routes.ts`, `controllers/auth.controller.ts`, `utils/token.ts`, `config/index.ts` | JWT and API-token authentication, role/permission checks, production configuration gates. |
 | Apps/releases | `backend/src/routes/app.routes.ts`, `release.routes.ts`, matching controllers, `middleware/upload.ts`, `utils/apkValidator.ts`, `checksum.ts` | App CRUD, APK upload/list/download/delete, version uniqueness and checksum/header validation. |
 | Identity/audit | `user.routes.ts`, `token.routes.ts`, `audit.routes.ts`, corresponding controllers, `services/auditService.ts` | User administration, scoped token lifecycle, audit queries and event writes. |
-| Persistence | `backend/prisma/schema.prisma`, `backend/prisma/migrations/`, `services/prisma.ts` | Global User/App/Release/ApiToken/AuditLog relational model and Prisma client. |
+| Projects/RBAC | `routes/project.routes.ts`, `controllers/project.controller.ts`, `controllers/membership.controller.ts`, `services/rbacService.ts`, `middleware/resourceRbac.ts` | Project containers, project/app memberships, and effective resource-role resolution for project, app, release, and download endpoints. |
+| Persistence | `backend/prisma/schema.prisma`, `backend/prisma/migrations/`, `services/prisma.ts` | Global User/Project/ProjectMembership/AppMembership/App/Release/ApiToken/AuditLog relational model and Prisma client. |
 | Artifact storage | `backend/src/storage/StorageProvider.ts`, `LocalStorageProvider.ts`, `storage/index.ts` | Storage abstraction and path-contained local files; no S3 provider exists in source. |
 | Frontend | `frontend/src/App.tsx`, `context/AuthContext.tsx`, `api/client.ts`, `pages/`, `components/` | Authenticated SPA screens for dashboard, apps/releases, users, tokens, audit logs, and CI/CD guidance. |
 | Operations | `docker-compose.yml`, `nginx/`, `scripts/`, `ci-cd/` | Container topology, proxy, backup/restore/export/scheduler scripts and pipeline examples. |
 
 ## Data model and storage boundaries
 
-`User` owns releases, tokens, and audit entries. `App` owns releases, tokens, and audit entries. `Release` references an app and optionally its uploader, and is unique by `(appId, version, versionCode)`. `ApiToken` stores a hash and optional app scope; plaintext is generated for creation response by the token controller. `AuditLog` optionally references a user and app. The schema has no organization/tenant boundary. APK bytes are addressed through `storageKey`; local storage resolves paths beneath its configured root.
+`User` owns releases, tokens, audit entries, and project/app memberships. `Project` owns apps and project memberships; `App` belongs to a project and owns releases, tokens, audit entries, and app memberships. Effective app access is global `ADMIN`, else direct `AppMembership`, else inherited `ProjectMembership`, else deny. `Release` references an app and optionally its uploader, and is unique by `(appId, version, versionCode)`. `ApiToken` stores a hash and optional app scope; plaintext is generated for creation response by the token controller. `AuditLog` optionally references a user and app. The schema has no organization/tenant boundary. APK bytes are addressed through `storageKey`; local storage resolves paths beneath its configured root.
 
 ## Tests and evidence locations
 
@@ -27,6 +28,7 @@ Backend API/security tests are in `backend/tests/{auth,permissions,releases,secu
 
 ## Module documents
 
+- [Projects, membership, and resource RBAC](modules/projects-rbac.md)
 - [Backend auth and security](modules/backend-auth-security.md)
 - [Applications and releases](modules/applications-releases.md)
 - [Identity, tokens, and audit](modules/identity-tokens-audit.md)

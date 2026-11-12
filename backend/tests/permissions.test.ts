@@ -53,6 +53,31 @@ describe('Role-Based Permissions API', () => {
       .field('versionCode', '100')
       .field('channel', 'DEV');
     testReleaseId = relRes.body.data.id;
+
+    // Under Module 02 Granular RBAC, assign devUser as DEVELOPER and viewerUser as VIEWER
+    const devUser = devRes.body.data.user;
+    const viewerUser = viewerRes.body.data.user;
+
+    const defaultProj = await prisma.project.findFirst({ where: { slug: 'default-project' } });
+    if (defaultProj) {
+      await prisma.projectMembership.upsert({
+        where: { project_user_unique: { projectId: defaultProj.id, userId: devUser.id } },
+        update: { role: 'DEVELOPER' },
+        create: { projectId: defaultProj.id, userId: devUser.id, role: 'DEVELOPER' },
+      });
+    }
+
+    await prisma.appMembership.upsert({
+      where: { app_user_unique: { appId: testAppId, userId: viewerUser.id } },
+      update: { role: 'VIEWER' },
+      create: { appId: testAppId, userId: viewerUser.id, role: 'VIEWER' },
+    });
+
+    await prisma.appMembership.upsert({
+      where: { app_user_unique: { appId: testAppId, userId: devUser.id } },
+      update: { role: 'DEVELOPER' },
+      create: { appId: testAppId, userId: devUser.id, role: 'DEVELOPER' },
+    });
   });
 
   afterAll(async () => {

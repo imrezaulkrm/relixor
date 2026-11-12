@@ -11,6 +11,7 @@ export const ChannelBadge: React.FC<Props> = ({ channel, size = 'md' }) => {
     DEV: 'bg-slate-700 text-slate-300 border-slate-600',
     QA: 'bg-amber-950/60 text-amber-300 border-amber-800',
     STAGING: 'bg-blue-950/60 text-blue-300 border-blue-800',
+    BETA: 'bg-purple-950/60 text-purple-300 border-purple-800',
     PRODUCTION: 'bg-emerald-950/60 text-emerald-300 border-emerald-800',
   };
 

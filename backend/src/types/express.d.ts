@@ -21,6 +21,7 @@ declare global {
       user?: AuthUser;
       apiToken?: AuthApiToken;
       authMethod?: 'jwt' | 'api_token';
+      sessionId?: string;
     }
   }
 }

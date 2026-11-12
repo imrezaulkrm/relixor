@@ -2,14 +2,31 @@ import React from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard,
+  FolderKanban,
   Smartphone,
   KeyRound,
   History,
   FileCode2,
   Users as UsersIcon,
+  UserCircle,
+  Layers,
+  ClipboardCheck,
+  Archive,
+  Globe,
 } from 'lucide-react';
 
-export type NavTab = 'dashboard' | 'apps' | 'tokens' | 'audit' | 'docs' | 'users';
+export type NavTab =
+  | 'dashboard'
+  | 'projects'
+  | 'apps'
+  | 'releases'
+  | 'qa'
+  | 'retention'
+  | 'tokens'
+  | 'audit'
+  | 'docs'
+  | 'users'
+  | 'profile';
 
 interface Props {
   currentTab: NavTab;
@@ -24,10 +41,15 @@ export const Sidebar: React.FC<Props> = ({ currentTab, onSelectTab }) => {
 
   const navItems = [
     { id: 'dashboard' as NavTab, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'projects' as NavTab, label: 'Projects', icon: FolderKanban },
     { id: 'apps' as NavTab, label: 'Applications', icon: Smartphone },
+    { id: 'releases' as NavTab, label: 'Releases', icon: Layers },
+    { id: 'qa' as NavTab, label: 'QA & Reports', icon: ClipboardCheck },
+    ...(isAdmin ? [{ id: 'retention' as NavTab, label: 'Retention', icon: Archive }] : []),
     ...(canManageTokens ? [{ id: 'tokens' as NavTab, label: 'API Tokens', icon: KeyRound }] : []),
     ...(isAdmin ? [{ id: 'audit' as NavTab, label: 'Audit Logs', icon: History }] : []),
     { id: 'docs' as NavTab, label: 'CI/CD & API Docs', icon: FileCode2 },
+    { id: 'profile' as NavTab, label: 'My Profile', icon: UserCircle },
     ...(isAdmin ? [{ id: 'users' as NavTab, label: 'User Management', icon: UsersIcon }] : []),
   ];
 
@@ -55,6 +77,17 @@ export const Sidebar: React.FC<Props> = ({ currentTab, onSelectTab }) => {
             </button>
           );
         })}
+      </div>
+
+      <div className="space-y-2">
+        <a
+          href="/portal"
+          target="_blank"
+          rel="noreferrer"
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+        >
+          <Globe className="w-3.5 h-3.5" /> Open public portal
+        </a>
       </div>
 
       <div className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl">
