@@ -527,4 +527,4 @@ The fresh `relixor-e2e-fresh` stack passed builds, migration, health, direct API
 - **UAT Verification Report:** [docs/UAT_REPORT.md](docs/UAT_REPORT.md) — Comprehensive test results, pass/fail matrices, verified capabilities, and defect resolution details.
 - **Agent Handover Document:** [docs/AGENT_HANDOVER.md](docs/AGENT_HANDOVER.md) — Persistent checkpointing, environment state, and resume instructions for future agents.
 - **Project Status & Evidence Tracker:** [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) — High-level verification status by module.
-- **Architecture & Code Map:** [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md) — Monorepo layout and service boundaries.
+- **Architecture & Code Map:** [docs/PROJECT_MAP.md](docs/PROJECT_MAP.md) — Monorepo layout and service boundaries..
