@@ -40,6 +40,9 @@ export STORAGE_LOCAL_DIR=/tmp/relixor-test-storage
 export NODE_ENV=test
 cd backend
 npx prisma migrate deploy
+npx prisma generate
+npm run build                 # compiles the seed used by the test fixtures
+node dist/prisma/seed.js
 npx jest --runInBand --forceExit
 ```
 

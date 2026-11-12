@@ -1,6 +1,6 @@
 # Environment Variables Reference
 
-Relixor reads configuration from the process environment. Docker Compose loads `.env` from the repository root; the backend additionally loads `backend/.env` in local development. **Never commit `.env`.** Template: [`.env.example`](https://github.com/) in the repository root (safe placeholders only).
+Relixor reads configuration from the process environment. Docker Compose loads `.env` from the repository root; the backend additionally loads `backend/.env` in local development. **Never commit `.env`.** Template: [`.env.example`](/docs/configuration/environment-variables) in the repository root (safe placeholders only).
 
 > Restart requirement: values are read once at process start. Changes require `docker compose up -d --force-recreate backend` (or a full `docker compose up -d --build`).
 

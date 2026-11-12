@@ -20,7 +20,7 @@ const entry = (
 ): DocEntry => ({ path, title, group, description, updated });
 
 export const DOC_ENTRIES: DocEntry[] = [
-  entry('/docs', 'Documentation Home', 'Overview', 'Start here: what Relixor is, who this documentation is for, and how it is organised.'),
+  entry('/docs', 'Relixor Documentation', 'Overview', 'Start here: what Relixor is, who this documentation is for, and how it is organised.'),
   entry('/docs/getting-started/introduction', 'Introduction & Quick Start', 'Getting Started', 'Product overview, architecture, requirements, installation and first login.'),
   entry('/docs/installation/quick-install', 'Installation on Ubuntu', 'Getting Started', 'Install Docker, configure .env, build and start the full stack, verify health.'),
   entry('/docs/deployment/production', 'Production Deployment', 'Getting Started', 'Hardened single-VM deployment, TLS, firewall, verification and rollback.'),
@@ -28,7 +28,7 @@ export const DOC_ENTRIES: DocEntry[] = [
   entry('/docs/configuration/environment-variables', 'Environment Variables', 'Configuration', 'Every supported variable, defaults, sensitivity and restart requirements.'),
 
   entry('/docs/architecture/overview', 'Architecture Overview', 'Architecture', 'Request lifecycle, data model, authentication, upload/download and retention flows.'),
-  entry('/docs/security/index', 'Security Guide', 'Architecture', 'Implemented controls and operational hardening for authentication, storage and deployment.'),
+  entry('/docs/security', 'Security Guide', 'Architecture', 'Implemented controls and operational hardening for authentication, storage and deployment.'),
 
   entry('/docs/user-guide/project-management', 'Projects & Applications', 'User Guide', 'Create projects, register apps, manage metadata and understand deletion rules.'),
   entry('/docs/user-guide/user-management', 'Users, Roles & Permissions', 'User Guide', 'RBAC enforcement, memberships, the permission matrix and access troubleshooting.'),
@@ -42,7 +42,7 @@ export const DOC_ENTRIES: DocEntry[] = [
   entry('/docs/user-guide/viewer-manual', 'Viewer Manual', 'Role Manuals', 'Read-only access, downloads and what VIEWER cannot do.'),
   entry('/docs/user-guide/qa-manual', 'QA Manual', 'Role Manuals', 'Verifying releases, recording evidence and exporting reports.'),
 
-  entry('/docs/administration/index', 'Administration Guide', 'Administration', 'Users, tokens, audit, storage, health and maintenance procedures.'),
+  entry('/docs/administration', 'Administration Guide', 'Administration', 'Users, tokens, audit, storage, health and maintenance procedures.'),
   entry('/docs/administration/database', 'Database & Migrations', 'Administration', 'PostgreSQL, Prisma, safe migrations, backups and failure recovery.'),
   entry('/docs/administration/retention', 'Retention & Cleanup', 'Administration', 'Policies, protections, dry-run, scheduling and irreversible deletion.'),
   entry('/docs/administration/backup-restore', 'Backup & Restore', 'Administration', 'Database, APK storage and configuration backups with verified restore steps.'),
@@ -52,9 +52,9 @@ export const DOC_ENTRIES: DocEntry[] = [
   entry('/docs/integrations/gitlab-ci', 'GitLab CI/CD', 'Integrations', 'Token scopes, CI variables and a complete working upload pipeline.'),
   entry('/docs/integrations/android-update-api', 'Android Update API', 'Integrations', 'Update checks, mandatory updates, tickets, SHA-256 and installation limits.'),
 
-  entry('/docs/troubleshooting/index', 'Troubleshooting', 'Operations', 'Symptom-driven fixes for containers, TLS, database, uploads and access.'),
-  entry('/docs/development/index', 'Development Guide', 'Operations', 'Local setup, conventions, adding endpoints/pages and safe contribution workflow.'),
-  entry('/docs/testing/index', 'Testing Guide', 'Operations', 'Disposable database setup, suites, coverage and known untested areas.'),
+  entry('/docs/troubleshooting', 'Troubleshooting', 'Operations', 'Symptom-driven fixes for containers, TLS, database, uploads and access.'),
+  entry('/docs/development', 'Development Guide', 'Operations', 'Local setup, conventions, adding endpoints/pages and safe contribution workflow.'),
+  entry('/docs/testing', 'Testing Guide', 'Operations', 'Disposable database setup, suites, coverage and known untested areas.'),
 
   entry('/docs/maintenance/maintenance-checklist', 'Maintenance Checklist', 'Maintenance', 'Daily, weekly, monthly and quarterly operational checks.'),
   entry('/docs/maintenance/production-readiness', 'Production Readiness', 'Maintenance', 'Evidence-based readiness assessment and release blockers.'),

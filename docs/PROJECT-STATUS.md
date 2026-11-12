@@ -1,6 +1,6 @@
 # Project Status
 
-Version **1.0.0** · 12 November 2026. This is the documentation-facing summary. Detailed module evidence lives in [`PROJECT_STATUS.md`](https://github.com/) in the repository root (kept as the engineering log).
+Version **1.0.0** · 12 November 2026. This is the documentation-facing summary. Detailed module evidence lives in [`PROJECT_STATUS.md`](/docs/PROJECT-STATUS) in the repository root (kept as the engineering log).
 
 ## Verification summary
 

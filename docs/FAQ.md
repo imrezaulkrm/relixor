@@ -46,4 +46,4 @@ No client is included. The update API and Android integration guide support buil
 No license has been selected in this repository. Do not redistribute without permission.
 
 **How do I report a security issue?**
-Follow [SECURITY.md](https://github.com/) in the repository; do not open a public issue with exploit details.
+Follow [SECURITY.md](/docs/security/index) in the repository; do not open a public issue with exploit details.

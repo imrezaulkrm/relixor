@@ -37,18 +37,18 @@ Project and app memberships are `DEVELOPER` or `VIEWER`:
 | Publish/deprecate/promote/rollback | ✅ | ✅ | ❌ | WRITE* |
 | Delete release | ✅ | ✅ | ❌ | WRITE |
 | Download release | ✅ | ✅ | ✅ | READ |
-| Record QA verification | ✅ | ✅ | ✅? — **no**, write required | WRITE |
+| Record QA verification | ✅ | ✅ (app access) | ❌ (WRITE required) | WRITE + access |
 | View QA report | ✅ | ✅ | ✅ | READ |
 | Manage memberships | ✅ | ❌ | ❌ | ❌ (interactive session only) |
 | Manage users/sessions/reset | ✅ | ❌ | ❌ | ❌ |
-| Issue/revoke API tokens | own/all as admin | own | own? — read-only role cannot create | ❌ |
+| Issue/revoke own API tokens | all tokens | own tokens | ❌ (role denied) | ❌ (interactive only) |
 | Retention policies/cleanup | ✅ | ❌ | ❌ | ❌ |
 | Audit log | ✅ | ❌ | ❌ | ❌ |
 | Publication settings | ✅ | ❌ | ❌ | ❌ |
 
 \* CI tokens can call lifecycle endpoints only where route guards allow token auth; the intended CI action is upload + optional submit. Approval through a shared CI token undermines separation of duties and is not recommended.
 
-> **Correction:** VIEWER cannot record QA verification (`requirePermission(WRITE)` denies), and VIEWER cannot create API tokens. Tokens cannot manage tokens or memberships.
+VIEWER is denied QA writes (`requirePermission(WRITE)`) and cannot manage API tokens (route requires ADMIN/DEVELOPER). API tokens cannot manage tokens or memberships.
 
 ## Create a user (ADMIN)
 

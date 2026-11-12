@@ -13,7 +13,7 @@ import { Tokens } from './pages/Tokens';
 import { Users } from './pages/Users';
 import { AuditLogs } from './pages/AuditLogs';
 import { CiCdDocs } from './pages/CiCdDocs';
-import { Docs } from './pages/Docs';
+const Docs = React.lazy(() => import('./pages/Docs').then((module) => ({ default: module.Docs })));
 import { Profile } from './pages/Profile';
 import { Releases } from './pages/Releases';
 import { QaReports } from './pages/QaReports';
@@ -49,7 +49,11 @@ export const AppContent: React.FC = () => {
   }
 
   if (window.location.pathname.startsWith('/docs')) {
-    return <Docs />;
+    return (
+      <React.Suspense fallback={<div className="min-h-screen bg-slate-950 flex items-center justify-center text-slate-400 text-sm">Loading documentation...</div>}>
+        <Docs />
+      </React.Suspense>
+    );
   }
 
   if (isLoading) {

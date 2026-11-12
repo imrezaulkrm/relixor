@@ -2,6 +2,8 @@
 
 Relixor is a self-hosted private Android APK repository and release-management platform. It stores builds, enforces an approval workflow, exposes a controlled public download portal, and integrates with CI/CD so Android teams can ship without a third-party artifact service.
 
+![Relixor documentation portal](/docs-portal.png)
+
 > **Scope of this documentation.** Everything here describes the current repository (v1.0, November 2026). Features marked **NOT IMPLEMENTED** or **NOT TESTED** are listed explicitly in [Known Limitations](/docs/KNOWN-LIMITATIONS) and [Project Status](/docs/PROJECT-STATUS).
 
 ## Start here
@@ -48,4 +50,4 @@ The portal is served by the same frontend at `/docs`. It does **not** require an
 - Product version: **1.0.0**
 - Documentation updated: **12 November 2026**
 - No open-source license has been selected in the repository; do not redistribute without the owner's permission.
-- Security reports: follow [SECURITY.md](https://github.com/) guidance in the repository root; do not open a public issue containing exploit details.
+- Security reports: follow [SECURITY.md](/docs/security/index) guidance in the repository root; do not open a public issue containing exploit details.

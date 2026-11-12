@@ -53,7 +53,7 @@ All containers share the private `relixor_net` bridge. Only nginx publishes a ho
 
 - Frontend: React 18, TypeScript, Vite 5, Tailwind CSS, lucide-react, qrcode.react.
 - Backend: Node.js 20, Express 4, TypeScript, Zod, Multer, Helmet, express-rate-limit.
-- Data: PostgreSQL 17 with Prisma 5 (11 migrations at v1.0).
+- Data: PostgreSQL 17 with Prisma 5 (7 migrations at v1.0).
 - Runtime: Docker multi-stage images; nginx serves the SPA and proxies the API.
 - Tests: Jest + Supertest against a disposable PostgreSQL database.
 

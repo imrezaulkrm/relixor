@@ -53,7 +53,7 @@ Relixor underwent a complete, isolated User Acceptance Testing (UAT) cycle, cove
 Executed against dedicated disposable test database `relixor_test` on `127.0.0.1:5434`.
 
 ```bash
-NODE_ENV=test DATABASE_URL="postgresql://relixor:relixor_local_db_2026@127.0.0.1:5434/relixor_test?schema=public" npm test
+NODE_ENV=test DATABASE_URL="postgresql://relixor:<test-password>@127.0.0.1:5434/relixor_test?schema=public" npm test
 ```
 
 | Suite | Tests | Result | Duration | Key Coverage |

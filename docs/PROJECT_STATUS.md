@@ -87,3 +87,15 @@ Environment: disposable PostgreSQL 17 container (`relixor-mod-test`, host port 5
 - S3/compatible storage remains unimplemented; only local storage is active.
 - Public portal UI is served at `/portal`; the SPA requires the existing Nginx history fallback for deep links.
 - No commit, push, deploy or production migration was performed.
+
+---
+
+## Documentation portal checkpoint (2026-11-12)
+
+- **IMPLEMENTED:** `/docs` React portal with grouped navigation, search, TOC, copy, print, prev/next and responsive layout; Markdown content in `docs/`; manifest at `frontend/src/docs/manifest.ts`; docs lazy-loaded.
+- **PASS:** frontend build (docs split chunk ~440 KB, main ~418 KB).
+- **PASS:** `node scripts/check-docs.mjs` — 56 Markdown files, 40 navigated pages, links/manifest/secret scan.
+- **PASS:** Playwright smoke against `vite preview` at 1440×900 and 390×844 — home, search, sidebar navigation, route H1, no page errors.
+- **PASS:** backend suite 13/13 suites, 155/155 tests after `migrate deploy` + seed on disposable PostgreSQL 17.
+- **NOT TESTED:** application-page browser E2E, authenticated UI flows, clean-VM Compose deployment.
+- No deployment, production migration or destructive operation was performed.

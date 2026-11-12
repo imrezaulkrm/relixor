@@ -34,3 +34,7 @@ The UI must not be treated as authorization; backend middleware is authoritative
   - SPA refresh state retention.
 
 Detailed results recorded in [docs/UAT_REPORT.md](../UAT_REPORT.md).
+
+## Documentation portal (2026-11-12)
+
+`/docs` is handled before auth gating in `App.tsx` and lazy-loads `pages/Docs.tsx`, keeping the main app bundle separate. Markdown under `docs/**/*.md` is bundled with `import.meta.glob`; pages are registered in `src/docs/manifest.ts`. The portal provides grouped navigation, full-text search, TOC, previous/next, breadcrumbs, copy-code buttons, print styles and responsive layouts. It intentionally requires no login and contains no secrets. `scripts/check-docs.mjs` validates links, manifest coverage and placeholder-safe secret patterns. Browser smoke (desktop/mobile, search, navigation) passed against the Vite preview build; application-page E2E remains untested.

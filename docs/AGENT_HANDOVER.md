@@ -37,7 +37,7 @@ When resuming this work:
    ```
 5. To rerun backend Jest integration tests against the isolated test database:
    ```bash
-   NODE_ENV=test DATABASE_URL="postgresql://relixor:relixor_local_db_2026@127.0.0.1:5434/relixor_test?schema=public" npm test
+   NODE_ENV=test DATABASE_URL="postgresql://relixor:<test-password>@127.0.0.1:5434/relixor_test?schema=public" npm test
    ```
 6. To rerun disposable backup/restore integration test:
    ```bash

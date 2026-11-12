@@ -44,8 +44,8 @@ function docHref(href: string | undefined, currentPath: string): string | undefi
   if (!href) return href;
   if (/^(https?:|mailto:|tel:)/.test(href)) return href;
   if (href.startsWith('#')) return href;
-  if (href.startsWith('/docs')) {
-    return href.replace(/\.md$/, '').replace(/\/index$/, '') || '/docs';
+  if (/^\/docs(\/|$)/.test(href)) {
+    return href.replace(/\.md$/, '').replace(/\/index$/, '').replace(/\/$/, '') || '/docs';
   }
   if (href.endsWith('.md')) {
     const base = currentPath === '/docs' ? 'http://docs.local/docs/' : `http://docs.local${currentPath}/`;
@@ -337,6 +337,8 @@ export const Docs: React.FC = () => {
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
+                    // The document title is rendered by the portal header; avoid a duplicate H1.
+                    h1: () => null,
                     h2: heading(2),
                     h3: heading(3),
                     h4: heading(4),
@@ -351,7 +353,7 @@ export const Docs: React.FC = () => {
                     },
                     a: ({ href, children }) => {
                       const resolved = docHref(href, entry.path);
-                      if (resolved && resolved.startsWith('/docs')) {
+                      if (resolved && /^\/docs(\/|$)/.test(resolved)) {
                         return (
                           <a
                             href={resolved}
